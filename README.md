@@ -12,3 +12,11 @@ SQL alchemy / SQLite
 
 async: aiosqlite
 routers
+
+GET / (renders annotation page)
+GET /api/tokens/next?annotator_id=name
+- returns next unannotated token for this annotator (TokenRead)
+GET /api/tokens/{token_id}
+POST /api/annotations
+- sends annotation to backend (AnnotationCreate)
+GET /api/progress?annotator_id=name

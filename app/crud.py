@@ -1,3 +1,3 @@
 """
-Handles database interaction
+Defines database operations
 """
