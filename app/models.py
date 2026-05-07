@@ -1,6 +1,12 @@
 """
 Defines how data is structured in the database (SQLAlchemy tables)
 """
+from datetime import datetime
+import enum
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, Enum
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.database import Base
 
 class Token(Base):
     __tablename__ = "tokens"
