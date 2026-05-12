@@ -17,7 +17,7 @@ from app.config import FORMANT_DB_URL
 
 # Manages database connections
 engine = create_engine(
-    DATABASE_URL,
+    FORMANT_DB_URL,
     connect_args={"check_same_thread": False} # required for FastAPI
 )
 
