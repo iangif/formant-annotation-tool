@@ -2,21 +2,18 @@
 Database setup.
 
 This file defines:
-1. The SQLite database location (based on .env)
-2. The SQLAlchemy engine for managing the database connection
-3. SessionLocal for managing database sessions
-4. Base, which all SQLAlchemy models inherit from
-5. get_db() for FastAPI routes to access the database
+1. The SQLAlchemy engine 
+2. SessionLocal factory
+3. The Base class for SQLAlchemy models
+4. get_db(), used by FastAPI routes
 """
 
-from app.config import ANNOTATOR_ID
+from collections.abc import Generator
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-# SQLite database file
-# Location: data/{ANNOTATOR_ID}.sqlite, defaults to data/unknown.sqlite
-DATABASE_URL = f"sqlite:///./data/{ANNOTATOR_ID}.sqlite"
+from app.config import FORMANT_DB_URL
 
 # Manages database connections
 engine = create_engine(
@@ -35,7 +32,7 @@ SessionLocal = sessionmaker(
 class Base(DeclarativeBase):
     pass
 
-def get_db():
+def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
         yield db
