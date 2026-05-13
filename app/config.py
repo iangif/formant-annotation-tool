@@ -29,3 +29,4 @@ FORMANT_DB_URL = os.getenv(
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 STATIC_DIR = PROJECT_ROOT / "app" / "static"
+TEMPLATES_DIR = PROJECT_ROOT / "app" / "templates"

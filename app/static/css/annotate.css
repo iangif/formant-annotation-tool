@@ -1,0 +1,23 @@
+/*
+    Minimal styling for annotation UI.
+
+    Bootstrap handles most of the layout.
+*/
+
+body {
+  background: #f8f9fa;
+}
+
+.spectrogram-image {
+    width: 100%;
+    max-height: calc(100vh - 170px);
+    object-fit: contain;
+}
+
+.panel-input {
+    font-variant-numeric: tabular-nums;
+}
+
+kbd {
+    font-size: 0.75rem;
+}

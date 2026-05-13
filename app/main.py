@@ -2,14 +2,16 @@
 FastAPI application entry point.
 
 This app exposes:
+- the Jinja annotation page at /
 - API routes under /api
 - static files under /static
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
-from app.config import ANNOTATOR_ID, STATIC_DIR
+from app.config import ANNOTATOR_ID, STATIC_DIR, TEMPLATES_DIR
 from app.routes.api import router as api_router
 
 app = FastAPI(
@@ -27,15 +29,19 @@ if STATIC_DIR.exists():
         name="static",
     )
 
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
 @app.get("/", include_in_schema=False)
-def health_check() -> dict:
+def annotation_page(request: Request):
     """
-    Minimal root endpoint for now.
-    This will later render Jinja annotation pages.
+    Render the main annotation interface.
+
+    The frontend JavaScript will call the backend API to load tokens,
+    save annotations, and update progress.
     """
 
-    return {
-        "status": "ok",
-        "annotator_id": ANNOTATOR_ID,
-        "message": "Formant Annotation Tool API is running.",
-    }
+    return templates.TemplateResponse(
+        request=request,
+        name="annotate.html",
+        context={"annotator_id": ANNOTATOR_ID},
+    )

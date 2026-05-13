@@ -423,6 +423,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "fasttrackpy" },
+    { name = "jinja2" },
     { name = "python-dotenv" },
     { name = "sqlalchemy" },
 ]
@@ -431,6 +432,7 @@ dependencies = [
 requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.136.1" },
     { name = "fasttrackpy", specifier = ">=0.6.1" },
+    { name = "jinja2", specifier = ">=3.1.6" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "sqlalchemy", specifier = ">=2.0.49" },
 ]
