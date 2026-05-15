@@ -26,6 +26,9 @@ const PANEL_ROWS = 4;
 const MIN_PANEL = 0;
 const MAX_PANEL = 19;
 
+const MIN_RIGHT_PANEL_WIDTH = 240;
+const MAX_RIGHT_PANEL_WIDTH = 700;
+
 const GRID_OFFSET = {
     left: 0.055,
     right: 0.008,
@@ -42,6 +45,9 @@ const annotatorId = document.getElementById("annotator-id").textContent.trim();
 const elements = {
     progressLabel: document.getElementById("progress-label"),
     statusAlert: document.getElementById("status-alert"),
+
+    mainLayout: document.getElementById("main-layout"),
+    resizeHandle: document.getElementById("resize-handle"),
 
     emptyState: document.getElementById("empty-state"),
     spectrogramWrapper: document.getElementById("spectrogram-wrapper"),
@@ -123,6 +129,46 @@ function updateSpectrogramAspectRatio() {
 
     elements.spectrogramWrapper.style.aspectRatio =
         `${image.naturalWidth} / ${image.naturalHeight}`;
+}
+
+/**
+ * Clamps value between min and max.
+ * Used by resize handle.
+ */
+function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+}
+
+/**
+ * Sets the width of the right panel, saving the size to local storage.
+ */
+function setRightPanelWidth(width) {
+    const clampedWidth = clamp(
+        width,
+        MIN_RIGHT_PANEL_WIDTH,
+        MAX_RIGHT_PANEL_WIDTH
+    );
+
+    elements.mainLayout.style.setProperty(
+        "--right-panel-width",
+        `${clampedWidth}px`
+    );
+
+    localStorage.setItem("rightPanelWidth", String(clampedWidth));
+}
+
+/**
+ * Restores width of the right panel from local storage.
+ */
+function restoreRightPanelWidth() {
+    const savedWidth = Number.parseInt(
+        localStorage.getItem("rightPanelWidth"),
+        10
+    );
+
+    if (Number.isInteger(savedWidth)) {
+        setRightPanelWidth(savedWidth);
+    }
 }
 
 /**
@@ -621,11 +667,51 @@ function registerEventListeners() {
     });
 }
 
+function registerResizeHandle() {
+    let isDragging = false;
+
+    elements.resizeHandle.addEventListener("mousedown", (event) => {
+        isDragging = true;
+        elements.resizeHandle.classList.add("is-dragging");
+        document.body.style.cursor = "col-resize";
+        event.preventDefault();
+    });
+
+    document.addEventListener("mousemove", (event) => {
+        if (!isDragging) {
+            return;
+        }
+
+        const layoutRect = elements.mainLayout.getBoundingClientRect();
+
+        /*
+            Right panel width is distance from mouse to right edge
+            of the full layout.
+        */
+        const newWidth = layoutRect.right - event.clientX;
+
+        setRightPanelWidth(newWidth);
+        hidePanelHoverOverlay();
+    });
+
+    document.addEventListener("mouseup", () => {
+        if (!isDragging) {
+            return;
+        }
+
+        isDragging = false;
+        elements.resizeHandle.classList.remove("is-dragging");
+        document.body.style.cursor = "";
+    });
+}
+
 /**
  * Initialize the page.
  */
 async function main() {
     registerEventListeners();
+    restoreRightPanelWidth();
+    registerResizeHandle();
 
     try {
         await loadNextToken();
