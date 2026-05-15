@@ -27,10 +27,10 @@ const MIN_PANEL = 0;
 const MAX_PANEL = 19;
 
 const GRID_OFFSET = {
-    left: 0.056,
+    left: 0.055,
     right: 0.008,
     top: 0.0,
-    bottom: 0.048,
+    bottom: 0.045,
 }
 
 let currentToken = null;
@@ -75,6 +75,13 @@ const elements = {
 };
 
 /**
+ * Simple async delay utility.
+ */
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
  * Return the panel-grid rectangle inside the rendered image.
  *
  * The browser gives us the displayed image size with getBoundingClientRect().
@@ -97,6 +104,25 @@ function getGridRect() {
         leftInset: leftInset,
         topInset: topInset,
     };
+}
+
+/**
+ * Match the wrapper aspect ratio to the loaded image.
+ *
+ * This ensures:
+ * - the wrapper dimensions match the real image dimensions
+ * - hover overlays stay aligned
+ * - different image sizes/aspect ratios work automatically
+ */
+function updateSpectrogramAspectRatio() {
+    const image = elements.spectrogramImage;
+
+    if (!image.naturalWidth || !image.naturalHeight) {
+        return;
+    }
+
+    elements.spectrogramWrapper.style.aspectRatio =
+        `${image.naturalWidth} / ${image.naturalHeight}`;
 }
 
 /**
@@ -297,6 +323,9 @@ function renderToken(token) {
     setAllPanelInputs(autoWinner);
     elements.notes.value = "";
 
+    elements.spectrogramImage.onload = () => {
+        updateSpectrogramAspectRatio();
+    };
     elements.spectrogramImage.src = token.image_url;
     elements.spectrogramWrapper.classList.remove("d-none");
     elements.emptyState.classList.add("d-none");
@@ -504,6 +533,7 @@ async function savePayload(payload) {
         }
 
         showStatus("Annotation saved.", "success");
+        await sleep(1000);
         await loadNextToken();
 
     } catch (error) {

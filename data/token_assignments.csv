@@ -1,0 +1,8 @@
+token_id,annotator_id,batch_name,is_overlap
+eng_libri_0001,ian,pilot_batch_1,TRUE
+eng_libri_0001,massimo,pilot_batch_1,TRUE
+eng_libri_0002,ian,pilot_batch_1,FALSE
+eng_libri_0003,massimo,pilot_batch_1,FALSE
+eng_libri_0004,ian,pilot_batch_1,TRUE
+eng_libri_0004,massimo,pilot_batch_1,TRUE
+eng_libri_0005,ian,pilot_batch_1,FALSE

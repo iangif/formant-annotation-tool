@@ -12,4 +12,4 @@ wheels/
 # Environment variables
 .env
 
-data/
+data/*.sqlite
