@@ -7,4 +7,4 @@ echo "Open this URL in your browser:"
 echo "  https://127.0.0.1:8000"
 echo ""
 
-uv run fastapi run app/main.py
+uv run fastapi run app/main.py --host 127.0.0.1 --port 8000

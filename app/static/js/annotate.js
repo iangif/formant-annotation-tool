@@ -591,6 +591,12 @@ function registerEventListeners() {
     elements.spectrogramWrapper.addEventListener("click", handleSpectrogramClick);
 
     document.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            saveCurrentPanelFields();
+            return;
+        }
+
         if (isTypingInInput(event)) {
             return;
         }
@@ -598,12 +604,6 @@ function registerEventListeners() {
         if (event.code === "Space") {
             event.preventDefault();
             saveAcceptAuto();
-            return;
-        }
-
-        if (event.key === "Enter") {
-            event.preventDefault();
-            saveCurrentPanelFields();
             return;
         }
 
