@@ -42,32 +42,38 @@
 
         <section id="status-alert" class="alert d-none" role="alert"></section>
 
-        <div class="row g-3">
+        <div class="row g-3 main-layout">
 
             <!-- Main spectrogram display. -->
-            <section class="col-12 col-xl-9">
+            <section class="col-12 col-xl-9 left-panel">
                 <div class="card shadow-sm">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <span class="fw-semibold">Spectrogram candidates</span>
                         <span id="token-id-label" class="small text-muted">No token loaded</span>
                     </div>
 
-                    <div class="card-body">
+                    <div class="card-body spectrogram-card-body">
                         <div id="empty-state" class="text-center text-muted py-5">
                         Loading first token...
                         </div>
 
-                        <img
-                        id="spectrogram-image"
-                        class="img-fluid d-none spectrogram-image"
-                        alt="Candidate spectrogram grid"
-                        >
+                        <div id="spectrogram-wrapper" class="spectrogram-wrapper d-none">
+                            <img
+                                id="spectrogram-image"
+                                class="spectrogram-image"
+                                alt="Candidate spectrogram grid"
+                            >
+
+                            <div id="panel-hover-overlay" class="panel-hover-overlay d-none">
+                                <span id="panel-hover-label" class="panel-hover-label"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
 
             <!-- Annotation controls and metadata. -->
-            <aside class="col-12 col-xl-3">
+            <aside class="col-12 col-xl-3 right-panel">
                 <div class="card shadow-sm mb-3">
                     <div class="card-header fw-semibold">
                         Token metadata
@@ -109,30 +115,32 @@
                     <div class="card-body">
                         <p class="small text-muted">
                             Current hotkeys:
-                            <kbd>Enter</kbd> accept auto,
+                            <kbd>Space</kbd> accept auto,
+                            <kbd>Enter</kbd> save F1-F4 fields,
                             <kbd>B</kbd> bad token,
                             <kbd>X</kbd> needs correction.
+                            Shift-click a panel to save it immediately.
                         </p>
 
                         <div class="row g-2 mb-3">
                             <div class="col-6">
                                 <label for="panel-f1" class="form-label">F1 panel</label>
-                                <input id="panel-f1" class="form-control form-control-sm panel-input" type="number" min="1">
+                                <input id="panel-f1" class="form-control form-control-sm panel-input" type="number" min="0" max="19">
                             </div>
 
                             <div class="col-6">
                                 <label for="panel-f2" class="form-label">F2 panel</label>
-                                <input id="panel-f2" class="form-control form-control-sm panel-input" type="number" min="1">
+                                <input id="panel-f2" class="form-control form-control-sm panel-input" type="number" min="0" max="19">
                             </div>
 
                             <div class="col-6">
                                 <label for="panel-f3" class="form-label">F3 panel</label>
-                                <input id="panel-f3" class="form-control form-control-sm panel-input" type="number" min="1">
+                                <input id="panel-f3" class="form-control form-control-sm panel-input" type="number" min="0" max="19">
                             </div>
 
                             <div class="col-6">
                                 <label for="panel-f4" class="form-label">F4 panel</label>
-                                <input id="panel-f4" class="form-control form-control-sm panel-input" type="number" min="1">
+                                <input id="panel-f4" class="form-control form-control-sm panel-input" type="number" min="0" max="19">
                             </div>
                         </div>
 

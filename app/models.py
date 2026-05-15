@@ -44,10 +44,10 @@ class Token(Base):
 """
 Annotation rules:
 - accept_auto       -> use token.auto_winner_panel for selected_panel and all panel_f*
-- select_panel      -> selected_panel required, copy to all panel_f*
+- select_panel      -> all panel_f* fields are the same non-winner panel
+- complex           -> at least one of the panel_f* differs
 - bad_token         -> no panels required
 - needs_correction  -> no panels required
-- complex           -> implement later
 """
 class AnnotationDecision(str, enum.Enum):
     accept_auto = "accept_auto"

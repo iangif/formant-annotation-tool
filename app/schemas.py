@@ -8,8 +8,11 @@ These models define the API contract:
 """
 
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator, Field
 from app.models import AnnotationDecision
+
+MIN_PANEL = 0
+MAX_PANEL = 19
 
 class TokenRead(BaseModel):
     """
@@ -41,30 +44,46 @@ class AnnotationCreate(BaseModel):
 
     token_id: str
     annotator_id: str
-
     decision: AnnotationDecision
 
-    selected_panel: int | None = None
-    panel_f1: int | None = None
-    panel_f2: int | None = None
-    panel_f3: int | None = None
-    panel_f4: int | None = None
+    selected_panel: int | None = Field(default=None, ge=MIN_PANEL, le=MAX_PANEL)
+    panel_f1: int | None = Field(default=None, ge=MIN_PANEL, le=MAX_PANEL)
+    panel_f2: int | None = Field(default=None, ge=MIN_PANEL, le=MAX_PANEL)
+    panel_f3: int | None = Field(default=None, ge=MIN_PANEL, le=MAX_PANEL)
+    panel_f4: int | None = Field(default=None, ge=MIN_PANEL, le=MAX_PANEL)
 
     notes: str | None = None
 
     @model_validator(mode="after")
     def validate_panel_fields(self) -> "AnnotationCreate":
         """
-        Enforce basic annotation rules:
-        accept_auto: API fills in panels from token.auto_winner_panel
-        select_planel: selected_panel is required
-        bad_token / needs_correction: panel fields optional
-        complex: TODO
+        Validate decision-specific panel requirements.
+
+        accept_auto:
+            Panel fields are optional because the backend fills them from token.auto_winner_panel.
+
+        select_panel:
+            selected_panel is required.
+        
+        complex:
+            all four formant panel fields are required.
+
+        bad_token / needs_correction:
+            panel fields are optional.
         """
 
         if self.decision == AnnotationDecision.select_panel:
             if self.selected_panel is None:
                 raise ValueError("selected_panel is required for select_panel")
+        
+        if self.decision == AnnotationDecision.complex:
+            panels = [self.panel_f1, self.panel_f2, self.panel_f3, self.panel_f4]
+
+            if any(panel is None for panel in panels):
+                raise ValueError("panel_f1 through panel_f4 are required for complex")
+
+            if len(set(panels)) == 1:
+                raise ValueError("complex requires at least one differing panel")
 
         return self
 

@@ -5,18 +5,37 @@
     Responsibilities:
     1. load the next token from the backend
     2. display its spectrogram image and metadata
-    3. keep F1-F4 panel fields initialized to the auto winner
+    3. track hover/click over a 5 x 4 panel image grid
     4. save annotation decisions through the API
     5. load the next token after each save
 
     Current hotkeys:
-    - Enter: accept automatic winner
+    - Space: accept_auto, ignoring F1-F4 fields
+    - Enter: save current F1-F4 fields
     - B: mark bad token
     - X: mark needs correction
+
+    Mouse:
+    - Hover over spectrogram: highlight panel 0-19
+    - Click panel: copy panel number into F1-F4 fields
+    - Shift + click panel: copy panel number and save immediately
 */
+
+const PANEL_COLUMNS = 5;
+const PANEL_ROWS = 4;
+const MIN_PANEL = 0;
+const MAX_PANEL = 19;
+
+const GRID_OFFSET = {
+    left: 0.056,
+    right: 0.008,
+    top: 0.0,
+    bottom: 0.048,
+}
 
 let currentToken = null;
 let isSaving = false;
+let hoveredPanel = null;
 
 const annotatorId = document.getElementById("annotator-id").textContent.trim();
 
@@ -25,7 +44,10 @@ const elements = {
     statusAlert: document.getElementById("status-alert"),
 
     emptyState: document.getElementById("empty-state"),
+    spectrogramWrapper: document.getElementById("spectrogram-wrapper"),
     spectrogramImage: document.getElementById("spectrogram-image"),
+    panelHoverOverlay: document.getElementById("panel-hover-overlay"),
+    panelHoverLabel: document.getElementById("panel-hover-label"),
 
     tokenIdLabel: document.getElementById("token-id-label"),
 
@@ -50,6 +72,31 @@ const elements = {
     acceptAutoBtn: document.getElementById("accept-auto-btn"),
     badTokenBtn: document.getElementById("bad-token-btn"),
     needsCorrectionBtn: document.getElementById("needs-correction-btn"),
+};
+
+/**
+ * Return the panel-grid rectangle inside the rendered image.
+ *
+ * The browser gives us the displayed image size with getBoundingClientRect().
+ * We then remove proportional margins used by axis labels/ticks.
+ */
+function getGridRect() {
+    const imageRect = elements.spectrogramImage.getBoundingClientRect();
+
+    const leftInset = imageRect.width * GRID_OFFSET.left;
+    const rightInset = imageRect.width * GRID_OFFSET.right;
+    const topInset = imageRect.height * GRID_OFFSET.top;
+    const bottomInset = imageRect.height * GRID_OFFSET.bottom;
+
+    return {
+        imageRect: imageRect,
+        left: imageRect.left + leftInset,
+        top: imageRect.top + topInset,
+        width: imageRect.width - leftInset - rightInset,
+        height: imageRect.height - topInset - bottomInset,
+        leftInset: leftInset,
+        topInset: topInset,
+    };
 }
 
 /**
@@ -90,6 +137,40 @@ function readPanelInput(inputElement) {
     }
 
     return Number.parseInt(value, 10);
+}
+
+/**
+ * Read all panel inputs as a list of integer or null.
+ */
+function readAllPanelInputs() {
+    return [
+        readPanelInput(elements.panelF1),
+        readPanelInput(elements.panelF2),
+        readPanelInput(elements.panelF3),
+        readPanelInput(elements.panelF4),
+    ];
+}
+
+/**
+ * Returns whether all panels are valid.
+ */
+function panelsAreValid(panels) {
+    return panels.every(
+        (panel) =>
+            Number.isInteger(panel) &&
+            panel >= MIN_PANEL &&
+            panel <= MAX_PANEL
+    );
+}
+
+/**
+ * Sets all panels given a panel number.
+ */
+function setAllPanelInputs(panelNumber) {
+    elements.panelF1.value = panelNumber;
+    elements.panelF2.value = panelNumber;
+    elements.panelF3.value = panelNumber;
+    elements.panelF4.value = panelNumber;
 }
 
 /**
@@ -136,10 +217,11 @@ async function loadProgress() {
 async function loadNextToken() {
     clearStatus();
     setControlsEnabled(false);
+    hidePanelHoverOverlay();
 
     elements.emptyState.classList.remove("d-none");
     elements.emptyState.textContent = "Loading next token...";
-    elements.spectrogramImage.classList.add("d-none");
+    elements.spectrogramWrapper.classList.add("d-none");
 
     const response = await fetch(`/api/tokens/next?annotator_id=${encodeURIComponent(annotatorId)}`);
 
@@ -149,7 +231,7 @@ async function loadNextToken() {
 
     const token = await response.json();
 
-    if (token == null) {
+    if (token === null) {
         currentToken = null;
         renderNoTokensRemaining();
         await loadProgress();
@@ -182,10 +264,7 @@ function renderNoTokensRemaining() {
     elements.audioPlayer.classList.add("d-none");
     elements.audioPlayer.removeAttribute("src");
 
-    elements.panelF1.value = "";
-    elements.panelF2.value = "";
-    elements.panelF3.value = "";
-    elements.panelF4.value = "";
+    setAllPanelInputs("");
     elements.notes.value = "";
 
     setControlsEnabled(false);
@@ -215,15 +294,11 @@ function renderToken(token) {
 
     elements.metaAutoWinner.textContent = autoWinner;
 
-    elements.panelF1.value = autoWinner;
-    elements.panelF2.value = autoWinner;
-    elements.panelF3.value = autoWinner;
-    elements.panelF4.value = autoWinner;
-
+    setAllPanelInputs(autoWinner);
     elements.notes.value = "";
 
     elements.spectrogramImage.src = token.image_url;
-    elements.spectrogramImage.classList.remove("d-none");
+    elements.spectrogramWrapper.classList.remove("d-none");
     elements.emptyState.classList.add("d-none");
 
     if (token.audio_url) {
@@ -236,9 +311,106 @@ function renderToken(token) {
 }
 
 /**
- * Build the JSON payload sent to POST /api/annotations
+ * Hides panel hover overlay.
  */
-function buildAnnotationPayload(decision) {
+function hidePanelHoverOverlay() {
+    hoveredPanel = null;
+    elements.panelHoverOverlay.classList.add("d-none");
+}
+
+/**
+ * Converts mouse position to panel index assuming indices go
+ * left-to-right then top-to-bottom.
+ */
+function getPanelFromMouseEvent(event) {
+    const gridRect = getGridRect();
+
+    const x = event.clientX - gridRect.left;
+    const y = event.clientY - gridRect.top;
+
+    if (x < 0 || y < 0 || x > gridRect.width || y > gridRect.height) {
+        return null;
+    }
+
+    const column = Math.min(
+        PANEL_COLUMNS - 1,
+        Math.floor((x / gridRect.width) * PANEL_COLUMNS)
+    );
+
+    const row = Math.min(
+        PANEL_ROWS - 1,
+        Math.floor((y / gridRect.height) * PANEL_ROWS)
+    );
+
+    return row * PANEL_COLUMNS + column;
+}
+
+/**
+ * Updates and shows visual hover overlay given the panel index.
+ */
+function updatePanelHoverOverlay(panelNumber) {
+    const gridRect = getGridRect();
+    const wrapperRect = elements.spectrogramWrapper.getBoundingClientRect();
+
+    const column = panelNumber % PANEL_COLUMNS;
+    const row = Math.floor(panelNumber / PANEL_COLUMNS);
+
+    const panelWidth = gridRect.width / PANEL_COLUMNS;
+    const panelHeight = gridRect.height / PANEL_ROWS;
+
+    const left = gridRect.left - wrapperRect.left + column * panelWidth;
+    const top = gridRect.top - wrapperRect.top + row * panelHeight;
+
+    elements.panelHoverOverlay.style.left = `${left}px`;
+    elements.panelHoverOverlay.style.top = `${top}px`;
+    elements.panelHoverOverlay.style.width = `${panelWidth}px`;
+    elements.panelHoverOverlay.style.height = `${panelHeight}px`;
+
+    elements.panelHoverLabel.textContent = panelNumber;
+    elements.panelHoverOverlay.classList.remove("d-none");
+}
+
+/**
+ * Handles mouse movement on the spectrogram image.
+ */
+
+function handleSpectrogramMouseMove(event) {
+    if (!currentToken || isSaving) {
+        hidePanelHoverOverlay();
+        return;
+    }
+
+    const panelNumber = getPanelFromMouseEvent(event);
+
+    if (panelNumber === null) {
+        hidePanelHoverOverlay();
+        return;
+    }
+
+    hoveredPanel = panelNumber;
+    updatePanelHoverOverlay(panelNumber);
+}
+
+/**
+ * Handles spectrogram click by setting all panels.
+ * If shift-click, saves and then immedately submits annotation.
+ */
+async function handleSpectrogramClick(event) {
+    if (!currentToken || hoveredPanel === null || isSaving) {
+        return;
+    }
+
+    setAllPanelInputs(hoveredPanel);
+
+    if (event.shiftKey) {
+        await saveCurrentPanelFields();
+    }
+}
+
+/**
+ * Builds the base JSON payload
+ */
+function buildBasePayload(decision) {
     if (!currentToken) {
         throw new Error("No token is currently loaded.");
     }
@@ -247,20 +419,67 @@ function buildAnnotationPayload(decision) {
         token_id: currentToken.id,
         annotator_id: annotatorId,
         decision: decision,
-
-        panel_f1: readPanelInput(elements.panelF1),
-        panel_f2: readPanelInput(elements.panelF2),
-        panel_f3: readPanelInput(elements.panelF3),
-        panel_f4: readPanelInput(elements.panelF4),
-
         notes: elements.notes.value.trim() || null,
     };
 }
 
+function buildAcceptAutoPayload() {
+    return buildBasePayload("accept_auto");
+}
+
+
+function buildBadTokenPayload() {
+    return buildBasePayload("bad_token");
+}
+
+
+function buildNeedsCorrectionPayload() {
+    return buildBasePayload("needs_correction");
+}
+
 /**
- * Save one annotation and then load the next token.
+ * Builds the JSON payload based on panel inputs.
  */
-async function saveAnnotation(decision) {
+function buildPanelFieldPayload() {
+    const panels = readAllPanelInputs();
+    
+    if (!panelsAreValid(panels)) {
+        throw new Error(`F1-F4 panel values must be integers from ${MIN_PANEL} to ${MAX_PANEL}.`);
+    }
+
+    const [panelF1, panelF2, panelF3, panelF4] = panels;
+    const uniquePanels = new Set(panels);
+    const autoWinner = currentToken.auto_winner_panel;
+
+    if (panels.every((panel) => panel === autoWinner)) {
+        return {
+            ...buildBasePayload("accept_auto"),
+        };
+    }
+
+    if (uniquePanels.size === 1) {
+        const selectedPanel = panelF1;
+
+        return {
+            ...buildBasePayload("select_panel"),
+            selected_panel: selectedPanel,
+            panel_f1: selectedPanel,
+            panel_f2: selectedPanel,
+            panel_f3: selectedPanel,
+            panel_f4: selectedPanel,
+        };
+    }
+
+    return {
+        ...buildBasePayload("complex"),
+        panel_f1: panelF1,
+        panel_f2: panelF2,
+        panel_f3: panelF3,
+        panel_f4: panelF4,
+    }
+}
+
+async function savePayload(payload) {
     if (!currentToken || isSaving) {
         return;
     }
@@ -270,8 +489,6 @@ async function saveAnnotation(decision) {
     showStatus("Saving annotation...", "info");
 
     try {
-        const payload = buildAnnotationPayload(decision);
-
         const response = await fetch("/api/annotations", {
             method: "POST",
             headers: {
@@ -298,6 +515,22 @@ async function saveAnnotation(decision) {
     }
 }
 
+async function saveAcceptAuto() {
+    await savePayload(buildAcceptAutoPayload());
+}
+
+async function saveBadToken() {
+    await savePayload(buildBadTokenPayload());
+}
+
+async function saveNeedsCorrection() {
+    await savePayload(buildNeedsCorrectionPayload());
+}
+
+async function saveCurrentPanelFields() {
+    await savePayload(buildPanelFieldPayload());
+}
+
 /**
  * Ignore hotkeys while the user is typing into form fields.
  */
@@ -319,36 +552,41 @@ function registerEventListeners() {
         }
     });
 
-    elements.acceptAutoBtn.addEventListener("click", () => {
-        saveAnnotation("accept_auto");
-    });
+    elements.acceptAutoBtn.addEventListener("click", saveAcceptAuto);
+    elements.badTokenBtn.addEventListener("click", saveBadToken);
+    elements.needsCorrectionBtn.addEventListener("click", saveNeedsCorrection);
 
-    elements.badTokenBtn.addEventListener("click", () => {
-        saveAnnotation("needs_correction");
-    });
-
-    elements.needsCorrectionBtn.addEventListener("click", () => {
-        saveAnnotation("needs_correction");
-    });
+    elements.spectrogramWrapper.addEventListener("mousemove", handleSpectrogramMouseMove);
+    elements.spectrogramWrapper.addEventListener("mouseleave", hidePanelHoverOverlay);
+    elements.spectrogramWrapper.addEventListener("click", handleSpectrogramClick);
 
     document.addEventListener("keydown", (event) => {
         if (isTypingInInput(event)) {
             return;
         }
 
+        if (event.code === "Space") {
+            event.preventDefault();
+            saveAcceptAuto();
+            return;
+        }
+
         if (event.key === "Enter") {
             event.preventDefault();
-            saveAnnotation("accept_auto");
+            saveCurrentPanelFields();
+            return;
         }
 
         if (event.key.toLowerCase() === "b") {
             event.preventDefault();
-            saveAnnotation("bad_token");
+            saveBadToken();
+            return;
         }
 
         if (event.key.toLowerCase() === "x") {
             event.preventDefault();
-            saveAnnotation("needs_correction");
+            saveNeedsCorrection();
+            return;
         }
     });
 }

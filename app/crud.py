@@ -62,8 +62,15 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
     """
     Saves one annotation row to the database.
 
-    Automatically fills panel fields for common cases.
-    NOTE: select_panel uses selected_panel for all formants unless specific formant panels are provided
+    The frontend decides whether the annotation is accept_auto, select_panel,
+    complex, bad_token, or needs_correction.
+
+    The backend still enforces invariants:
+    - token must exist
+    - token must be assigned to this annotator
+    - accept_auto always stores the auto_winner_panel
+    - select_panel can never duplicate auto_accept
+    - complex must contain at least two distinct panel values
     """
 
     token = get_token_by_id(db, annotation_in.token_id)
@@ -75,9 +82,9 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
         raise ValueError(f"Token {annotation_in.token_id} is not assigned to annotator {annotation_in.annotator_id}")
     
     data = annotation_in.model_dump()
+    winner = token.auto_winner_panel
 
     if annotation_in.decision == AnnotationDecision.accept_auto:
-        winner = token.auto_winner_panel
         data["selected_panel"] = winner
         data["panel_f1"] = winner
         data["panel_f2"] = winner
@@ -86,15 +93,41 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
 
     elif annotation_in.decision == AnnotationDecision.select_panel:
         panel = annotation_in.selected_panel
-        data["panel_f1"] = annotation_in.panel_f1 or panel # Overwrites
-        data["panel_f2"] = annotation_in.panel_f2 or panel
-        data["panel_f3"] = annotation_in.panel_f3 or panel
-        data["panel_f4"] = annotation_in.panel_f4 or panel
+
+        if panel == winner:
+            raise ValueError("select_panel cannot use the auto-winner panel. Use accept_auto instead.")
+
+        data["panel_f1"] = panel
+        data["panel_f2"] = panel
+        data["panel_f3"] = panel
+        data["panel_f4"] = panel
+
+    elif annotation_in.decision == AnnotationDecision.complex:
+        panels = [
+            annotation_in.panel_f1,
+            annotation_in.panel_f2,
+            annotation_in.panel_f3,
+            annotation_in.panel_f4,
+        ]
+
+        if all(panel == winner for panel in panels):
+            raise ValueError(
+                "complex cannot duplicate auto_accept. "
+                "Use auto_accept instead."
+            )
+
+        if len(set(panels)) == 1:
+            raise ValueError(
+                "complex requires at least one formant panel to differ."
+            )
+
+        data["selected_panel"] = None
 
     annotation = Annotation(**data)
 
     db.add(annotation)
-    # Question: how to handle if token is already annotated?
+    # Open question: how to handle if token is already annotated?
+    # Currently, a new annotation is added with a different date.
     db.commit()
     db.refresh(annotation)
 
