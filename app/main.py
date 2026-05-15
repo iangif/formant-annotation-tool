@@ -8,6 +8,7 @@ This app exposes:
 """
 
 from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -45,3 +46,11 @@ def annotation_page(request: Request):
         name="annotate.html",
         context={"annotator_id": ANNOTATOR_ID},
     )
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """
+    Serve favicon for browser tab icon.
+    """
+
+    return FileResponse(STATIC_DIR / "favicon.ico")

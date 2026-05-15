@@ -13,6 +13,8 @@
         rel="stylesheet"
     >
 
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+
     <link rel="stylesheet" href="/static/css/annotate.css">
 </head>
 
@@ -42,10 +44,10 @@
 
         <section id="status-alert" class="alert d-none" role="alert"></section>
 
-        <div class="row g-3 main-layout">
+        <div id="main-layout" class="main-layout">
 
             <!-- Main spectrogram display. -->
-            <section class="col-12 col-xl-9 left-panel">
+            <section class="left-panel">
                 <div class="card shadow-sm">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <span class="fw-semibold">Spectrogram candidates</span>
@@ -72,8 +74,10 @@
                 </div>
             </section>
 
+            <div id="resize-handle" class="resize-handle" title="Drag to resize panel"></div>
+
             <!-- Annotation controls and metadata. -->
-            <aside class="col-12 col-xl-3 right-panel">
+            <aside class="right-panel">
                 <div class="card shadow-sm mb-3">
                     <div class="card-header fw-semibold">
                         Token metadata

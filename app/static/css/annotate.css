@@ -17,9 +17,25 @@ main.container-fluid {
 
 .main-layout {
     height: calc(100vh - 80px);
+
+    display: grid;
+    grid-template-columns: 1fr 6px var(--right-panel-width, 360px);
+    gap: 0.75rem;
+}
+
+.resize-handle {
+    cursor: col-resize;
+    background: transparent;
+    border-radius: 999px;
+}
+
+.resize-handle:hover,
+.resize-handle.is-dragging {
+    background: rgba(13, 110, 253, 0.25);
 }
 
 .left-panel {
+    min-width: 0;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -33,12 +49,14 @@ main.container-fluid {
 }
 
 .right-panel {
+    min-width: 240px;
+    max-width: 700px;
     height: 100%;
     overflow-y: auto;
 }
 
 .right-panel .card:last-child {
-    margin-bottom: 2rem;
+    /*margin-bottom: 2rem;*/
 }
 
 .card-body.spectrogram-card-body {
