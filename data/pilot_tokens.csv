@@ -1,0 +1,13 @@
+id,corpus,speaker_id,vowel_label,word,preceding_phone,following_phone,duration_ms,min_max_formant,max_max_formant,n_formants,max_number_of_formants,n_candidates,auto_winner_panel,image_path,audio_path,candidates_pickle_path
+eng_libri_0001,librispeech,spk_001,AE,cat,K,T,112.4,4500,6500,4,5.5,20,7,app/static/images/1-0-7.png,,data/pickles/1-0-7.pkl
+eng_libri_0002,librispeech,spk_001,IY,beet,B,T,138.9,4500,6500,4,5.5,20,12,app/static/images/1-0-14.png,,data/pickles/1-0-14.pkl
+eng_libri_0003,librispeech,spk_002,AA,hot,H,T,101.7,4500,6500,4,5.5,20,5,app/static/images/1-0-19.png,,data/pickles/1-0-19.pkl
+eng_libri_0004,librispeech,spk_003,UW,boot,B,T,156.2,4500,6500,4,5.5,20,9,app/static/images/1-0-24.png,,data/pickles/1-0-24.pkl
+eng_libri_0005,librispeech,spk_004,EH,bed,B,D,94.6,4500,6500,4,5.5,20,14,app/static/images/1-0-26.png,,data/pickles/1-0-26.pkl
+eng_libri_0006,librispeech,spk_001,AE,cat,K,T,112.4,4500,6500,4,5.5,20,7,app/static/images/1-0-28.png,,data/pickles/1-0-28.pkl
+eng_libri_0007,librispeech,spk_001,IY,beet,B,T,138.9,4500,6500,4,5.5,20,12,app/static/images/1-0-38.png,,data/pickles/1-0-38.pkl
+eng_libri_0008,librispeech,spk_002,AA,hot,H,T,101.7,4500,6500,4,5.5,20,5,app/static/images/1-0-53.png,,data/pickles/1-0-53.pkl
+eng_libri_0009,librispeech,spk_003,UW,boot,B,T,156.2,4500,6500,4,5.5,20,9,app/static/images/1-0-71.png,,data/pickles/1-0-71.pkl
+eng_libri_0010,librispeech,spk_004,EH,bed,B,D,94.6,4500,6500,4,5.5,20,14,app/static/images/1-0-79.png,,data/pickles/1-0-79.pkl
+eng_libri_0011,librispeech,spk_001,AE,cat,K,T,112.4,4500,6500,4,5.5,20,7,app/static/images/1-0-95.png,,data/pickles/1-0-95.pkl
+eng_libri_0012,librispeech,spk_001,IY,beet,B,T,138.9,4500,6500,4,5.5,20,12,app/static/images/1-0-99.png,,data/pickles/1-0-99.pkl
