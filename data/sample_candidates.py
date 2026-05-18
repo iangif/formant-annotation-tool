@@ -1,3 +1,7 @@
+"""
+Example of using fasttrack.
+"""
+
 from fasttrackpy import process_audio_textgrid
 from fasttrackpy.processors.outputs import pickle_candidates, unpickle_candidates
 

@@ -75,9 +75,6 @@ const elements = {
     notes: document.getElementById("notes"),
 
     reloadTokenBtn: document.getElementById("reload-token-btn"),
-    acceptAutoBtn: document.getElementById("accept-auto-btn"),
-    badTokenBtn: document.getElementById("bad-token-btn"),
-    needsCorrectionBtn: document.getElementById("needs-correction-btn"),
 };
 
 /**
@@ -255,9 +252,6 @@ function setControlsEnabled(enabled) {
         elements.panelF3,
         elements.panelF4,
         elements.notes,
-        elements.acceptAutoBtn,
-        elements.badTokenBtn,
-        elements.needsCorrectionBtn,
         elements.reloadTokenBtn,
     ];
 
@@ -627,10 +621,6 @@ function registerEventListeners() {
             showStatus(error.message, "danger");
         }
     });
-
-    elements.acceptAutoBtn.addEventListener("click", saveAcceptAuto);
-    elements.badTokenBtn.addEventListener("click", saveBadToken);
-    elements.needsCorrectionBtn.addEventListener("click", saveNeedsCorrection);
 
     elements.spectrogramWrapper.addEventListener("mousemove", handleSpectrogramMouseMove);
     elements.spectrogramWrapper.addEventListener("mouseleave", hidePanelHoverOverlay);

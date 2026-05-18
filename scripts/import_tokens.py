@@ -1,5 +1,5 @@
 """
-Imports token metadata from data/pilot_tokens.csv into SQLite.
+Imports token metadata from data/common_pilot_0_49.csv into SQLite.
 
 Run from project root: uv run python -m scripts.import_tokens
 
@@ -13,10 +13,9 @@ from pathlib import Path
 
 from app.database import SessionLocal
 from app.models import Token
-
 from scripts.utils import empty_to_none
 
-CSV_PATH = Path("data/pilot_tokens.csv")
+CSV_PATH = Path("data/common_pilot_0_49.csv")
 
 def to_float(value: str | None) -> float | None:
     """
@@ -24,11 +23,7 @@ def to_float(value: str | None) -> float | None:
     """
 
     value = empty_to_none(value)
-
-    if value is None:
-        return None
-
-    return float(value)
+    return None if value is None else float(value)
 
 def to_int(value: str | None) -> int | None:
     """
@@ -36,35 +31,61 @@ def to_int(value: str | None) -> int | None:
     """
 
     value = empty_to_none(value)
+    return None if value is None else int(value)
 
-    if value is None:
-        return None
+def build_token_id(row: dict[str, str]) -> str:
+    """
+    Builds stable token id.
+    """
 
-    return int(value)
+    index = int(row["index"])
+    padded_index = f"{index:05d}"
+
+    return (
+        f"{padded_index}_"
+        f"{row['phone']}_"
+        f"{row['speaker']}_"
+        f"{row['gender']}_"
+        f"{row['discourse']}_"
+        f"{row['phone_begin']}"
+    )
 
 def build_token(row: dict[str, str]) -> Token:
     """
     Convert one CSV row into a Token SQLAlchemy object.
     """
 
+    token_id = build_token_id(row)
+
+    phone_begin = to_float(row.get("phone_begin"))
+    phone_end = to_float(row.get("phone_end"))
+
+    duration_ms = None
+    if phone_begin is not None and phone_end is not None:
+        duration_ms = round((phone_end - phone_begin) * 1000, 2)
+
     return Token(
-        id=row["id"],
-        corpus=row["corpus"],
-        speaker_id=empty_to_none(row.get("speaker_id")),
-        vowel_label=row["vowel_label"],
+        id=token_id,
+        corpus="librispeech",
+        speaker_id=empty_to_none(row.get("speaker")),
+        vowel_label=row["phone"],
         word=empty_to_none(row.get("word")),
-        preceding_phone=empty_to_none(row.get("preceding_phone")),
+        preceding_phone=empty_to_none(row.get("previous_phone")),
         following_phone=empty_to_none(row.get("following_phone")),
-        duration_ms=to_float(row.get("duration_ms")),
-        min_max_formant=to_float(row.get("min_max_formant")),
-        max_max_formant=to_float(row.get("max_max_formant")),
-        n_formants=to_int(row.get("n_formants")),
-        max_number_of_formants=to_float(row.get("max_number_of_formants")),
-        n_candidates=to_int(row.get("n_candidates")) or 20,
-        auto_winner_panel=to_int(row.get("auto_winner_panel")),
-        image_path=row["image_path"],
-        audio_path=empty_to_none(row.get("audio_path")),
-        candidates_pickle_path=empty_to_none(row.get("candidates_pickle_path")),
+        duration_ms=duration_ms,
+
+        # Placeholders for now
+        min_max_formant=None,
+        max_max_formant=None,
+        n_formants=None,
+        max_number_of_formants=None,
+
+        n_candidates=20,
+        auto_winner_panel=to_int(row.get("winner_auto")) or 10,
+
+        image_path=f"app/static/images/{token_id}.png",
+        audio_path=f"app/static/audio/{token_id}.wav",
+        candidates_pickle_path=None,
     )
 
 def main() -> None:

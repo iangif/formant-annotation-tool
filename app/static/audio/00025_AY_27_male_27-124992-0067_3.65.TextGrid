@@ -1,0 +1,90 @@
+File type = "ooTextFile"
+Object class = "TextGrid"
+
+xmin = 0 
+xmax = 0.7399999999999998 
+tiers? <exists> 
+size = 3 
+item []: 
+    item [1]:
+        class = "IntervalTier" 
+        name = "words" 
+        xmin = 0 
+        xmax = 0.7399999999999998 
+        intervals: size = 3 
+        intervals [1]:
+            xmin = 0 
+            xmax = 0.02499999999999991 
+            text = "the" 
+        intervals [2]:
+            xmin = 0.02499999999999991 
+            xmax = 0.7149999999999999 
+            text = "israelites" 
+        intervals [3]:
+            xmin = 0.7149999999999999 
+            xmax = 0.7399999999999998 
+            text = "" 
+    item [2]:
+        class = "IntervalTier" 
+        name = "phones" 
+        xmin = 0 
+        xmax = 0.7399999999999998 
+        intervals: size = 10 
+        intervals [1]:
+            xmin = 0 
+            xmax = 0.02499999999999991 
+            text = "AH0" 
+        intervals [2]:
+            xmin = 0.02499999999999991 
+            xmax = 0.11499999999999977 
+            text = "IH1" 
+        intervals [3]:
+            xmin = 0.11499999999999977 
+            xmax = 0.19499999999999984 
+            text = "Z" 
+        intervals [4]:
+            xmin = 0.19499999999999984 
+            xmax = 0.24499999999999966 
+            text = "R" 
+        intervals [5]:
+            xmin = 0.24499999999999966 
+            xmax = 0.33499999999999996 
+            text = "AH0" 
+        intervals [6]:
+            xmin = 0.33499999999999996 
+            xmax = 0.3849999999999998 
+            text = "L" 
+        intervals [7]:
+            xmin = 0.3849999999999998 
+            xmax = 0.4750000000000001 
+            text = "AY2" 
+        intervals [8]:
+            xmin = 0.4750000000000001 
+            xmax = 0.5949999999999998 
+            text = "T" 
+        intervals [9]:
+            xmin = 0.5949999999999998 
+            xmax = 0.7149999999999999 
+            text = "S" 
+        intervals [10]:
+            xmin = 0.7149999999999999 
+            xmax = 0.7399999999999998 
+            text = "" 
+    item [3]:
+        class = "IntervalTier" 
+        name = "vowel" 
+        xmin = 0 
+        xmax = 0.7399999999999998 
+        intervals: size = 3 
+        intervals [1]:
+            xmin = 0 
+            xmax = 0.3599999999999999 
+            text = "" 
+        intervals [2]:
+            xmin = 0.3599999999999999 
+            xmax = 0.5 
+            text = "*" 
+        intervals [3]:
+            xmin = 0.5 
+            xmax = 0.7399999999999998 
+            text = "" 

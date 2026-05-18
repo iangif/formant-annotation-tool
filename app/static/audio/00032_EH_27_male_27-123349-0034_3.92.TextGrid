@@ -1,0 +1,74 @@
+File type = "ooTextFile"
+Object class = "TextGrid"
+
+xmin = 0 
+xmax = 0.37000000000000055 
+tiers? <exists> 
+size = 3 
+item []: 
+    item [1]:
+        class = "IntervalTier" 
+        name = "words" 
+        xmin = 0 
+        xmax = 0.37000000000000055 
+        intervals: size = 3 
+        intervals [1]:
+            xmin = 0 
+            xmax = 0.02499999999999991 
+            text = "had" 
+        intervals [2]:
+            xmin = 0.02499999999999991 
+            xmax = 0.3450000000000002 
+            text = "never" 
+        intervals [3]:
+            xmin = 0.3450000000000002 
+            xmax = 0.37000000000000055 
+            text = "been" 
+    item [2]:
+        class = "IntervalTier" 
+        name = "phones" 
+        xmin = 0 
+        xmax = 0.37000000000000055 
+        intervals: size = 6 
+        intervals [1]:
+            xmin = 0 
+            xmax = 0.02499999999999991 
+            text = "D" 
+        intervals [2]:
+            xmin = 0.02499999999999991 
+            xmax = 0.07499999999999973 
+            text = "N" 
+        intervals [3]:
+            xmin = 0.07499999999999973 
+            xmax = 0.17499999999999938 
+            text = "EH1" 
+        intervals [4]:
+            xmin = 0.17499999999999938 
+            xmax = 0.25499999999999945 
+            text = "V" 
+        intervals [5]:
+            xmin = 0.25499999999999945 
+            xmax = 0.3450000000000002 
+            text = "ER0" 
+        intervals [6]:
+            xmin = 0.3450000000000002 
+            xmax = 0.37000000000000055 
+            text = "B" 
+    item [3]:
+        class = "IntervalTier" 
+        name = "vowel" 
+        xmin = 0 
+        xmax = 0.37000000000000055 
+        intervals: size = 3 
+        intervals [1]:
+            xmin = 0 
+            xmax = 0.04999999999999982 
+            text = "" 
+        intervals [2]:
+            xmin = 0.04999999999999982 
+            xmax = 0.19999999999999973 
+            text = "*" 
+        intervals [3]:
+            xmin = 0.19999999999999973 
+            xmax = 0.37000000000000055 
+            text = "" 

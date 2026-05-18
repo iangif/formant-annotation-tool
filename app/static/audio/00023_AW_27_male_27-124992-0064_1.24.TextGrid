@@ -1,0 +1,74 @@
+File type = "ooTextFile"
+Object class = "TextGrid"
+
+xmin = 0 
+xmax = 0.3699999999999999 
+tiers? <exists> 
+size = 3 
+item []: 
+    item [1]:
+        class = "IntervalTier" 
+        name = "words" 
+        xmin = 0 
+        xmax = 0.3699999999999999 
+        intervals: size = 3 
+        intervals [1]:
+            xmin = 0 
+            xmax = 0.02499999999999991 
+            text = "him" 
+        intervals [2]:
+            xmin = 0.02499999999999991 
+            xmax = 0.345 
+            text = "bound" 
+        intervals [3]:
+            xmin = 0.345 
+            xmax = 0.3699999999999999 
+            text = "with" 
+    item [2]:
+        class = "IntervalTier" 
+        name = "phones" 
+        xmin = 0 
+        xmax = 0.3699999999999999 
+        intervals: size = 6 
+        intervals [1]:
+            xmin = 0 
+            xmax = 0.02499999999999991 
+            text = "M" 
+        intervals [2]:
+            xmin = 0.02499999999999991 
+            xmax = 0.09499999999999997 
+            text = "B" 
+        intervals [3]:
+            xmin = 0.09499999999999997 
+            xmax = 0.2649999999999999 
+            text = "AW1" 
+        intervals [4]:
+            xmin = 0.2649999999999999 
+            xmax = 0.31499999999999995 
+            text = "N" 
+        intervals [5]:
+            xmin = 0.31499999999999995 
+            xmax = 0.345 
+            text = "D" 
+        intervals [6]:
+            xmin = 0.345 
+            xmax = 0.3699999999999999 
+            text = "W" 
+    item [3]:
+        class = "IntervalTier" 
+        name = "vowel" 
+        xmin = 0 
+        xmax = 0.3699999999999999 
+        intervals: size = 3 
+        intervals [1]:
+            xmin = 0 
+            xmax = 0.07000000000000006 
+            text = "" 
+        intervals [2]:
+            xmin = 0.07000000000000006 
+            xmax = 0.2899999999999998 
+            text = "*" 
+        intervals [3]:
+            xmin = 0.2899999999999998 
+            xmax = 0.3699999999999999 
+            text = "" 
