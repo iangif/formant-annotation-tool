@@ -55,10 +55,6 @@ main.container-fluid {
     overflow-y: auto;
 }
 
-.right-panel .card:last-child {
-    /*margin-bottom: 2rem;*/
-}
-
 .card-body.spectrogram-card-body {
     flex: 1;
     display: flex;
