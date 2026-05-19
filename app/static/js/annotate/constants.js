@@ -8,7 +8,7 @@ export const MAX_RIGHT_PANEL_WIDTH = 700;
 
 export const GRID_OFFSET = {
     left: 0.050,
-    right: 0.02,
+    right: 0.01,
     top: 0.0,
     bottom: 0.05,
 };

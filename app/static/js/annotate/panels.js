@@ -47,3 +47,27 @@ export function setAllPanelInputs(panelNumber) {
     elements.panelF3.value = panelNumber;
     elements.panelF4.value = panelNumber;
 }
+
+/**
+ * Briefly flashes the F1-F4 inputs after panel selection.
+ */
+export function flashPanelInputs() {
+    const inputs = [
+        elements.panelF1,
+        elements.panelF2,
+        elements.panelF3,
+        elements.panelF4,
+    ];
+
+    for (const input of inputs) {
+        input.classList.remove("selection-flash");
+        void input.offsetWidth;
+        input.classList.add("selection-flash");
+    }
+
+    window.setTimeout(() => {
+        for (const input of inputs) {
+            input.classList.remove("selection-flash");
+        }
+    }, 160);
+}

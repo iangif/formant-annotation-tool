@@ -5,7 +5,10 @@ import {
     PANEL_ROWS,
     GRID_OFFSET,
 } from "./constants.js";
-import { setAllPanelInputs } from "./panels.js";
+import {
+    setAllPanelInputs,
+    flashPanelInputs,
+} from "./panels.js";
 import { saveCurrentPanelFields } from "./actions.js";
 
 /**
@@ -113,6 +116,19 @@ export function updatePanelHoverOverlay(panelNumber) {
 }
 
 /**
+ * Brief pulse animation confirming panel selection.
+ */
+function pulsePanelSelection() {
+    elements.panelHoverOverlay.classList.remove("selection-pulse");
+    void elements.panelHoverOverlay.offsetWidth;
+    elements.panelHoverOverlay.classList.add("selection-pulse");
+
+    window.setTimeout(() => {
+        elements.panelHoverOverlay.classList.remove("selection-pulse");
+    }, 160);
+}
+
+/**
  * Handles mouse movement on the spectrogram image.
  */
 export function handleSpectrogramMouseMove(event) {
@@ -142,6 +158,9 @@ export async function handleSpectrogramClick(event) {
     }
 
     setAllPanelInputs(state.hoveredPanel);
+
+    pulsePanelSelection();
+    flashPanelInputs();
 
     if (event.shiftKey) {
         await saveCurrentPanelFields();
