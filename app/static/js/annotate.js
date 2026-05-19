@@ -30,10 +30,10 @@ const MIN_RIGHT_PANEL_WIDTH = 240;
 const MAX_RIGHT_PANEL_WIDTH = 700;
 
 const GRID_OFFSET = {
-    left: 0.055,
-    right: 0.008,
+    left: 0.050,
+    right: 0.02,
     top: 0.0,
-    bottom: 0.045,
+    bottom: 0.05,
 }
 
 let currentToken = null;
@@ -44,7 +44,7 @@ const annotatorId = document.getElementById("annotator-id").textContent.trim();
 
 const elements = {
     progressLabel: document.getElementById("progress-label"),
-    statusAlert: document.getElementById("status-alert"),
+    toastContainer: document.getElementById("toast-container"),
 
     mainLayout: document.getElementById("main-layout"),
     resizeHandle: document.getElementById("resize-handle"),
@@ -169,19 +169,71 @@ function restoreRightPanelWidth() {
 }
 
 /**
- * Show a Bootstrap-style status message.
+ * Show toast message. Toast is only shown when app encounters an error.
  */
-function showStatus(message, type = "info") {
-    elements.statusAlert.textContent = message;
-    elements.statusAlert.className = `alert alert-${type}`;
+function showToast(message, type = "danger") {
+    const toastElement = document.createElement("div");
+    toastElement.className = `toast align-items-center text-bg-${type} border-0`;
+    toastElement.setAttribute("role", "alert");
+    toastElement.setAttribute("aria-live", "assertive");
+    toastElement.setAttribute("aria-atomic", "true");
+
+    toastElement.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body"></div>
+            <button
+                type="button"
+                class="btn-close btn-close-white me-2 m-auto"
+                data-bs-dismiss="toast"
+                aria-label="Close"
+            ></button>
+        </div>
+    `;
+
+    toastElement.querySelector(".toast-body").textContent = message;
+    elements.toastContainer.appendChild(toastElement);
+
+    const toast = new bootstrap.Toast(toastElement, {
+        autohide: type !== "danger",
+        delay: 2500,
+    });
+
+    toastElement.addEventListener("hidden.bs.toast", () => {
+        toastElement.remove();
+    });
+
+    toast.show();
 }
 
 /**
- * Hide the status message.
+ * Called when spectrogram is fading out.
  */
-function clearStatus() {
-    elements.statusAlert.textContent = "";
-    elements.statusAlert.className = "alert d-none";
+async function fadeOutSpectrogram() {
+    if (elements.spectrogramWrapper.classList.contains("d-none")) {
+        return;
+    }
+    elements.spectrogramWrapper.classList.add("is-transitioning");
+    await sleep(140);
+}
+
+/**
+ * Called when spectrogram is fading in.
+ */
+function fadeInSpectrogram() {
+    elements.spectrogramWrapper.classList.remove("is-transitioning");
+}
+
+/**
+ * Border flash confirmation after submitting an annotation.
+ */
+function flashSaveConfirmation() {
+    elements.spectrogramWrapper.classList.remove("save-confirmed");
+    void elements.spectrogramWrapper.offsetWidth;
+    elements.spectrogramWrapper.classList.add("save-confirmed");
+
+    window.setTimeout(() => {
+        elements.spectrogramWrapper.classList.remove("save-confirmed");
+    }, 260);
 }
 
 /**
@@ -281,7 +333,6 @@ async function loadProgress() {
  * Load the next available token for this annotator.
  */
 async function loadNextToken() {
-    clearStatus();
     setControlsEnabled(false);
     hidePanelHoverOverlay();
 
@@ -334,7 +385,7 @@ function renderNoTokensRemaining() {
     elements.notes.value = "";
 
     setControlsEnabled(false);
-    showStatus("All assigned tokens have been annotated.", "success");
+    showToast("All assigned tokens have been annotated.", "success");
 }
 
 /**
@@ -365,7 +416,10 @@ function renderToken(token) {
 
     elements.spectrogramImage.onload = () => {
         updateSpectrogramAspectRatio();
+        fadeInSpectrogram();
     };
+
+    elements.spectrogramWrapper.classList.add("is-transitioning");
     elements.spectrogramImage.src = token.image_url;
     elements.spectrogramWrapper.classList.remove("d-none");
     elements.emptyState.classList.add("d-none");
@@ -555,7 +609,6 @@ async function savePayload(payload) {
 
     isSaving = true;
     setControlsEnabled(false);
-    showStatus("Saving annotation...", "info");
 
     try {
         const response = await fetch("/api/annotations", {
@@ -572,12 +625,12 @@ async function savePayload(payload) {
             throw new Error(message);
         }
 
-        showStatus("Annotation saved.", "success");
-        await sleep(1000);
+        flashSaveConfirmation();
+        await fadeOutSpectrogram();
         await loadNextToken();
 
     } catch (error) {
-        showStatus(error.message, "danger");
+        showToast(error.message, "danger");
         setControlsEnabled(true);
 
     } finally {
@@ -618,7 +671,7 @@ function registerEventListeners() {
         try {
             await loadNextToken();
         } catch (error) {
-            showStatus(error.message, "danger");
+            showToast(error.message, "danger");
         }
     });
 
@@ -706,7 +759,7 @@ async function main() {
     try {
         await loadNextToken();
     } catch (error) {
-        showStatus(error.message, "danger");
+        showToast(error.message, "danger");
         setControlsEnabled(false);
     }
 }
