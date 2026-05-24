@@ -47,6 +47,14 @@ class OpenPraatRead(BaseModel):
     opened: bool
     message: str
 
+class ClosePraatRead(BaseModel):
+    """
+    Response returned after asking the backend to close app-opened Praat.
+    """
+
+    closed: bool
+    message: str
+
 class AnnotationCreate(BaseModel):
     """
     Payload sent by the frontend when the annotator makes a decision.

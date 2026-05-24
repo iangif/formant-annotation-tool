@@ -14,6 +14,7 @@ from app.models import Token
 from app.schemas import (
     AnnotationCreate,
     AnnotationRead,
+    ClosePraatRead,
     OpenPraatRead,
     ProgressRead,
     TokenRead,
@@ -21,6 +22,8 @@ from app.schemas import (
 from app.services.praat import (
     PraatConfigurationError,
     PraatFileError,
+    PraatProcessError,
+    close_app_praat_process,
     open_token_in_praat,
 )
 
@@ -147,6 +150,12 @@ def open_praat_for_token(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
+
+    except PraatProcessError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
     
     except RuntimeError as exc:
         raise HTTPException(
@@ -158,6 +167,35 @@ def open_praat_for_token(
         token_id=token_id,
         opened=True,
         message="Opened token in Praat.",
+    )
+
+@router.post("/praat/close", response_model=ClosePraatRead)
+def close_praat() -> ClosePraatRead:
+    """
+    Close the Praat process opened by this app.
+
+    This only targets the Praat process tracked by this FastAPI backend.
+    It does not attempt to close unrelated Praat windows the user opened manually.
+    """
+
+    try:
+        closed = close_app_praat_process()
+
+    except PraatProcessError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+    
+    if not closed:
+        return ClosePraatRead(
+            closed=False,
+            message="No app-opened Praat process is currently running.",
+        )
+    
+    return ClosePraatRead(
+        closed=True,
+        message="Closed app-opened Praat process.",
     )
 
 @router.post("/annotations", response_model=AnnotationRead, status_code=status.HTTP_201_CREATED)

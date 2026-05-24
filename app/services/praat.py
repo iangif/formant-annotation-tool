@@ -20,6 +20,11 @@ class PraatConfigurationError(RuntimeError):
 class PraatFileError(RuntimeError):
     """Raised when the token's wav/TextGrid files are missing."""
 
+class PraatProcessError(RuntimeError):
+    """Raised when Praat cannot be opened or closed cleanly."""
+
+_praat_process: subprocess.Popen | None = None
+
 def resolve_project_path(path_value: str | None) -> Path | None:
     """
     Resolve a database path into an absolute local filesystem path.
@@ -115,8 +120,6 @@ def validate_token_files(audio_path: Path | None, textgrid_path: Path | None) ->
 def write_open_token_script(audio_path: Path, textgrid_path: Path) -> Path:
     """
     Writes a temporary Praat script that opens the Sound and TextGrid together.
-
-    We use --send, not --run, because this script creates a GUI editor window.
     """
     
     sound_name = praat_object_name(audio_path)
@@ -143,9 +146,49 @@ def write_open_token_script(audio_path: Path, textgrid_path: Path) -> Path:
 
     return Path(temp.name)
 
+def has_app_praat_process() -> bool:
+    """Returns True if this backend is currently tracking a live Praat process."""
+
+    return _praat_process is not None and _praat_process.poll() is None
+
+def close_app_praat_process() -> bool:
+    """
+    Close the Praat process created by this backend.
+
+    Returns:
+        True if tracked process existed and was closed.
+        False if there was no tracked live process.
+    """
+
+    global _praat_process
+
+    if not has_app_praat_process():
+        _praat_process = None
+        return False
+
+    assert _praat_process is not None
+
+    try:
+        _praat_process.terminate()
+        _praat_process.wait(timeout=5)
+
+    except subprocess.TimeoutExpired:
+        _praat_process.kill()
+        _praat_process.wait(timeout=5)
+
+    except OSError as exc:
+        raise PraatProcessError("Could not close the app-opened Praat process.") from exc
+
+    finally:
+        _praat_process = None
+
+    return True
+
 def open_token_in_praat(audio_path_value: str | None, textgrid_path_value: str | None) -> None:
     """
     Opens a token's wav and TextGrid in Praat.
+
+    If this app already has a tracked Praat process open, it is closed first.
 
     Raises:
         PraatConfigurationError
@@ -153,16 +196,20 @@ def open_token_in_praat(audio_path_value: str | None, textgrid_path_value: str |
         RuntimeError
     """ 
 
+    global _praat_process
+
     praat_executable = find_praat_executable()
 
     audio_path = resolve_project_path(audio_path_value)
     textgrid_path = resolve_project_path(textgrid_path_value)
     audio_path, textgrid_path = validate_token_files(audio_path, textgrid_path)
 
+    close_app_praat_process()
+
     script_path = write_open_token_script(audio_path, textgrid_path)
 
     try:
-        subprocess.Popen(
+        _praat_process = subprocess.Popen(
             [
                 str(praat_executable),
                 "--new-send",
@@ -172,6 +219,7 @@ def open_token_in_praat(audio_path_value: str | None, textgrid_path_value: str |
             stderr=subprocess.DEVNULL,
         )
     except OSError as exc:
+        _praat_process = None
         raise PraatConfigurationError(
             f"Could not launch Praat executable: {praat_executable}"
         ) from exc
