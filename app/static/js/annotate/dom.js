@@ -37,4 +37,6 @@ export const elements = {
     notes: document.getElementById("notes"),
 
     reloadTokenBtn: document.getElementById("reload-token-btn"),
+    openPraatBtn: document.getElementById("open-praat-btn"),
+    closePraatBtn: document.getElementById("close-praat-btn"),
 };
