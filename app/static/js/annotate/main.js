@@ -39,9 +39,7 @@ function registerButtonEvents() {
         try {
             const result = await closePraat();
 
-            if (result.closed) {
-                showToast(result.message || "Closed Praat.", "success");
-            } else {
+            if(!result.closed) {
                 showToast(result.message || "No app-opened Praat process is currently running.", "info");
             }
 

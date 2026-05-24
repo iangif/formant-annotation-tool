@@ -30,6 +30,18 @@
                         <span id="annotator-id" class="fw-semibold">{{ annotator_id }}</span>
                     </p>
                 </div>
+                
+                <div class="d-flex align-items-center gap-2">
+                    <span class="small text-muted">Tools</span>
+
+                    <button id="open-praat-btn" class="btn btn-outline-primary btn-sm" disabled>
+                        Open Praat
+                    </button>
+
+                    <button id="close-praat-btn" class="btn btn-outline-secondary btn-sm">
+                        Close Praat
+                    </button>
+                </div>
 
                 <div class="text-end">
                     <div id="progress-label" class="small text-muted">
@@ -37,20 +49,6 @@
                     </div>
                     <button id="reload-token-btn" class="btn btn-outline-secondary btn-sm mt-2">
                         Reload token
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-bar card shadow-sm mt-3">
-                <div class="card-body py-2 d-flex align-items-center gap-2 flex-wrap">
-                    <span class="small text-muted me-2">Token tools</span>
-
-                    <button id="open-praat-btn" class="btn btn-outline-primary btn-sm" disabled>
-                        Open in Praat
-                    </button>
-
-                    <button id="close-praat-btn" class="btn btn-outline-secondary btn-sm">
-                        Close Praat
                     </button>
                 </div>
             </div>
