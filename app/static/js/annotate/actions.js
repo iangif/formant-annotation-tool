@@ -1,6 +1,6 @@
 import { state } from "./state.js";
 import { setControlsEnabled, showToast, flashSaveConfirmation, fadeOutSpectrogram } from "./ui.js";
-import { loadNextToken } from "./api.js";
+import { loadNextToken, closePraat } from "./api.js";
 import {
     buildAcceptAutoPayload,
     buildBadTokenPayload,
@@ -32,6 +32,13 @@ export async function savePayload(payload) {
         }
 
         flashSaveConfirmation();
+
+        try {
+            await closePraat();
+        } catch (error) {
+            showToast(error.message, "warning");
+        }
+
         await fadeOutSpectrogram();
         await loadNextToken();
 

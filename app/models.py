@@ -36,6 +36,7 @@ class Token(Base):
     # Files
     image_path: Mapped[str] = mapped_column(String)
     audio_path: Mapped[str | None] = mapped_column(String, nullable=True)
+    textgrid_path: Mapped[str | None] = mapped_column(String, nullable=True)
     candidates_pickle_path: Mapped[str | None] = mapped_column(String, nullable=True)
 
     # Timestamp

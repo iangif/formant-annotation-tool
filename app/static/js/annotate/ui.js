@@ -71,6 +71,7 @@ export function setControlsEnabled(enabled) {
         elements.panelF4,
         elements.notes,
         elements.reloadTokenBtn,
+        elements.openPraatBtn,
     ];
 
     for (const control of controls) {

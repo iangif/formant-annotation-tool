@@ -159,3 +159,11 @@ kbd {
         border-color 140ms ease,
         box-shadow 140ms ease;
 }
+
+.toolbar {
+    min-height: 34px;
+}
+
+.toolbar .btn {
+    line-height: 1.4;
+}

@@ -52,3 +52,43 @@ export async function loadNextToken() {
     setControlsEnabled(true);
     await loadProgress();
 }
+
+/**
+ * Ask the backend to open the current token in Praat.
+ */
+export async function openCurrentTokenInPraat() {
+    if (!state.currentToken) {
+        throw new Error("No token is currently loaded.");
+    }
+
+    const response = await fetch(`/api/tokens/${encodeURIComponent(state.currentToken.id)}/open-praat`, {
+        method: "POST",
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+        const message = data?.detail || "Failed to open token in Praat.";
+        throw new Error(message);
+    }
+
+    return data;
+}
+
+/**
+ * Ask the backend to close the Praat process opened by this app.
+ */
+export async function closePraat() {
+    const response = await fetch("/api/praat/close", {
+        method: "POST",
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+        const message = data?.detail || "Failed to close Praat.";
+        throw new Error(message);
+    }
+
+    return data;
+}

@@ -85,6 +85,7 @@ def build_token(row: dict[str, str]) -> Token:
 
         image_path=f"app/static/images/{token_id}.png",
         audio_path=f"app/static/audio/{token_id}.wav",
+        textgrid_path=f"app/static/audio/{token_id}.TextGrid",
         candidates_pickle_path=None,
     )
 

@@ -11,7 +11,21 @@ from app import crud
 from app.config import ANNOTATOR_ID
 from app.database import get_db
 from app.models import Token
-from app.schemas import AnnotationCreate, AnnotationRead, ProgressRead, TokenRead
+from app.schemas import (
+    AnnotationCreate,
+    AnnotationRead,
+    ClosePraatRead,
+    OpenPraatRead,
+    ProgressRead,
+    TokenRead,
+)
+from app.services.praat import (
+    PraatConfigurationError,
+    PraatFileError,
+    PraatProcessError,
+    close_app_praat_process,
+    open_token_in_praat,
+)
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -60,6 +74,7 @@ def token_to_read(token: Token) -> TokenRead:
         auto_winner_panel=token.auto_winner_panel,
         image_url=file_path_to_static_url(token.image_path),
         audio_url=file_path_to_static_url(token.audio_path),
+        textgrid_url=file_path_to_static_url(token.textgrid_path),
     )
 
 @router.get("/tokens/next", response_model=TokenRead | None)
@@ -97,6 +112,91 @@ def get_token(
         )
     
     return token_to_read(token)
+
+@router.post("/tokens/{token_id}/open-praat", response_model=OpenPraatRead)
+def open_praat_for_token(
+    token_id: str,
+    db: Session = Depends(get_db),
+) -> OpenPraatRead:
+    """
+    Opens the token's wav and TextGrid files in Praat.
+
+    This endpoint is intended for the local annotation app only.
+    It launches a desktop application on the same machine that is running the FastAPI backend.
+    """
+
+    token = crud.get_token_by_id(db=db, token_id=token_id)
+
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Token not found: {token_id}",
+        )
+    
+    try:
+        open_token_in_praat(
+            audio_path_value=token.audio_path,
+            textgrid_path_value=token.textgrid_path,
+        )
+    
+    except PraatConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    
+    except PraatFileError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    except PraatProcessError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+    
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc)
+        ) from exc
+
+    return OpenPraatRead(
+        token_id=token_id,
+        opened=True,
+        message="Opened token in Praat.",
+    )
+
+@router.post("/praat/close", response_model=ClosePraatRead)
+def close_praat() -> ClosePraatRead:
+    """
+    Close the Praat process opened by this app.
+
+    This only targets the Praat process tracked by this FastAPI backend.
+    It does not attempt to close unrelated Praat windows the user opened manually.
+    """
+
+    try:
+        closed = close_app_praat_process()
+
+    except PraatProcessError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+    
+    if not closed:
+        return ClosePraatRead(
+            closed=False,
+            message="No app-opened Praat process is currently running.",
+        )
+    
+    return ClosePraatRead(
+        closed=True,
+        message="Closed app-opened Praat process.",
+    )
 
 @router.post("/annotations", response_model=AnnotationRead, status_code=status.HTTP_201_CREATED)
 def create_annotation(
