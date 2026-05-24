@@ -34,8 +34,18 @@ class TokenRead(BaseModel):
 
     image_url: str
     audio_url: str | None = None
+    textgrid_url: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class OpenPraatRead(BaseModel):
+    """
+    Response returned after the backend asks Praat to open a token.
+    """
+
+    token_id: str
+    opened: bool
+    message: str
 
 class AnnotationCreate(BaseModel):
     """

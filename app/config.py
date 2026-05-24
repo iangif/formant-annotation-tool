@@ -26,6 +26,9 @@ FORMANT_DB_URL = os.getenv(
     f"sqlite:///./data/{ANNOTATOR_ID}.sqlite",
 )
 
+# Optional path to Praat executable.
+PRAAT_PATH = os.getenv("PRAAT_PATH") or None
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 STATIC_DIR = PROJECT_ROOT / "app" / "static"
