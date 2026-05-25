@@ -81,7 +81,9 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
     if not is_token_assigned(db=db, token_id=annotation_in.token_id, annotator_id=annotation_in.annotator_id):
         raise ValueError(f"Token {annotation_in.token_id} is not assigned to annotator {annotation_in.annotator_id}")
     
-    data = annotation_in.model_dump()
+    data = annotation_in.model_dump(
+        exclude={"image_source", "fasttrack_params"}
+    )
     winner = token.auto_winner_panel
 
     if annotation_in.decision == AnnotationDecision.accept_auto:

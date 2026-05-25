@@ -4,7 +4,14 @@ API routes for frontend.
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    status,
+)
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app import crud
@@ -16,6 +23,8 @@ from app.schemas import (
     AnnotationRead,
     ClosePraatRead,
     OpenPraatRead,
+    FastTrackRead,
+    FastTrackRequest,
     ProgressRead,
     TokenRead,
 )
@@ -25,6 +34,13 @@ from app.services.praat import (
     PraatProcessError,
     close_app_praat_process,
     open_token_in_praat,
+)
+from app.services.fasttrack import (
+    FastTrackGenerationError,
+    FastTrackInputFileError,
+    generate_fasttrack_alternative,
+    get_temp_fasttrack_image_path,
+    promote_fasttrack_alternative,
 )
 
 router = APIRouter(prefix="/api", tags=["api"])
@@ -198,6 +214,73 @@ def close_praat() -> ClosePraatRead:
         message="Closed app-opened Praat process.",
     )
 
+@router.post("/tokens/{token_id}/fasttrack", response_model=FastTrackRead)
+def rerun_fasttrack_for_token(
+    token_id: str,
+    params: FastTrackRequest,
+    db: Session = Depends(get_db),
+) -> FastTrackRead:
+    """
+    Rerun FastTrackPy for the current token and create one alternative spectrogram image.
+
+    This endpoint does not overwrite the committed/original image. It only writes to the alternative image/pickle locations. The frontend can display the returned alternate_image_url immediately.
+    """
+
+    token = crud.get_token_by_id(db=db, token_id=token_id)
+
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Token not found: {token_id}",
+        )
+
+    try:
+        result = generate_fasttrack_alternative(
+            token=token,
+            params=params,
+        )
+
+    except FastTrackInputFileError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    except FastTrackGenerationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    return FastTrackRead(
+        token_id=token_id,
+        alternate_image_url=result.image_url,
+        message="Generated alternative FastTrack spectrogram.",
+    )
+
+@router.get("/tokens/{token_id}/fasttrack-image")
+def get_fasttrack_image(token_id: str) -> FileResponse:
+    """
+    Stream the temporary FastTrack spectrogram image for one token.
+
+    The image is not stored under app/static because it is temporary backend
+    state. The frontend can use this URL as an <img src>.
+    """
+
+    image_path = get_temp_fasttrack_image_path(token_id)
+
+    if not image_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No temporary FastTrack image exists for token {token_id}.",
+        )
+
+    return FileResponse(
+        path=image_path,
+        media_type="image/png",
+        filename=f"{token_id}.png",
+    )
+
 @router.post("/annotations", response_model=AnnotationRead, status_code=status.HTTP_201_CREATED)
 def create_annotation(
     annotation_in: AnnotationCreate,
@@ -205,14 +288,43 @@ def create_annotation(
 ) -> AnnotationRead:
     """
     Saves one annotation decision.
-    Called by frontend after every token decision.
+
+    If the frontend says the currently displayed image is the FastTrack
+    alternative, promote the alternative before saving the annotation.
     """
 
     try:
+        if annotation_in.image_source == "alternate":
+            token = crud.get_token_by_id(
+                db=db,
+                token_id=annotation_in.token_id,
+            )
+
+            if token is None:
+                raise ValueError(f"Unknown token_id: {annotation_in.token_id}")
+            
+            promoted = promote_fasttrack_alternative(token=token)
+
+            token.image_path = promoted.image_path_value
+            token.candidates_pickle_path = promoted.candidates_pickle_path_value
+
+            if annotation_in.fasttrack_params is not None:
+                token.min_max_formant = annotation_in.fasttrack_params.min_max_formant
+                token.max_max_formant = annotation_in.fasttrack_params.max_max_formant
+                token.n_formants = annotation_in.fasttrack_params.n_formants
+
+            db.add(token)
+
         annotation = crud.create_annotation(
             db=db,
             annotation_in=annotation_in,
         )
+
+    except FastTrackInputFileError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
 
     except ValueError as exc:
         raise HTTPException(

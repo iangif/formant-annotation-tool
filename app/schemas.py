@@ -10,6 +10,7 @@ These models define the API contract:
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 from app.models import AnnotationDecision
+from typing import Literal
 
 MIN_PANEL = 0
 MAX_PANEL = 19
@@ -55,6 +56,33 @@ class ClosePraatRead(BaseModel):
     closed: bool
     message: str
 
+ImageSource = Literal["original", "alternate"]
+
+class FastTrackRequest(BaseModel):
+    """
+    Settings the annotator can change before rerunning FastTrackPy.
+    """
+
+    min_max_formant: float = Field(gt=0)
+    max_max_formant: float = Field(gt=0)
+    n_formants: int = Field(ge=1, le=6)
+
+    @model_validator(mode="after")
+    def validate_formant_range(self) -> "FastTrackRequest":
+        if self.max_max_formant <= self.min_max_formant:
+            raise ValueError("max_max_formant must be greater than min_max_formant")
+
+        return self
+
+class FastTrackRead(BaseModel):
+    """
+    Response returned after creating an alternative spectrogram.
+    """
+
+    token_id: str
+    alternate_image_url: str
+    message: str
+
 class AnnotationCreate(BaseModel):
     """
     Payload sent by the frontend when the annotator makes a decision.
@@ -63,6 +91,9 @@ class AnnotationCreate(BaseModel):
     token_id: str
     annotator_id: str
     decision: AnnotationDecision
+
+    image_source: ImageSource = "original"
+    fasttrack_params: FastTrackRequest | None = None
 
     selected_panel: int | None = Field(default=None, ge=MIN_PANEL, le=MAX_PANEL)
     panel_f1: int | None = Field(default=None, ge=MIN_PANEL, le=MAX_PANEL)
@@ -105,7 +136,7 @@ class AnnotationCreate(BaseModel):
 
         return self
 
-class AnnotationRead(AnnotationCreate):
+class AnnotationRead(BaseModel):
     """
     Annotation row returned after a successful save.
     """
@@ -124,7 +155,7 @@ class AnnotationRead(AnnotationCreate):
     annotation_version: str
     created_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 class ProgressRead(BaseModel):
     """
