@@ -152,6 +152,7 @@ def generate_fasttrack_alternative(
             maximum_frequency=4800,
             time_step = 0.001,
             file_name=str(temp_image_path),
+            dpi=150,
         )
 
         pickle_candidates(candidates, str(temp_pickle_path))

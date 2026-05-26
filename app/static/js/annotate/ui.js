@@ -72,6 +72,12 @@ export function setControlsEnabled(enabled) {
         elements.notes,
         elements.reloadTokenBtn,
         elements.openPraatBtn,
+        elements.fasttrackMenuBtn,
+        elements.fasttrackMinMaxFormant,
+        elements.fasttrackMaxMaxFormant,
+        elements.fasttrackNFormants,
+        elements.generateFasttrackBtn,
+        elements.restoreOriginalBtn,
     ];
 
     for (const control of controls) {

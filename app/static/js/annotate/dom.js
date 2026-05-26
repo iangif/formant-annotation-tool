@@ -39,4 +39,11 @@ export const elements = {
     reloadTokenBtn: document.getElementById("reload-token-btn"),
     openPraatBtn: document.getElementById("open-praat-btn"),
     closePraatBtn: document.getElementById("close-praat-btn"),
+
+    fasttrackMenuBtn: document.getElementById("fasttrack-menu-btn"),
+    fasttrackMinMaxFormant: document.getElementById("fasttrack-min-max-formant"),
+    fasttrackMaxMaxFormant: document.getElementById("fasttrack-max-max-formant"),
+    fasttrackNFormants: document.getElementById("fasttrack-n-formants"),
+    generateFasttrackBtn: document.getElementById("generate-fasttrack-btn"),
+    restoreOriginalBtn: document.getElementById("restore-original-btn"),
 };

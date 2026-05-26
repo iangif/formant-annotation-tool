@@ -8,6 +8,7 @@ import {
     restoreRightPanelWidth,
     registerResizeHandle,
 } from "./resize-panel.js";
+import { registerFastTrackEvents } from "./fasttrack.js";
 
 function registerButtonEvents() {
     elements.reloadTokenBtn.addEventListener("click", async () => {
@@ -54,6 +55,7 @@ function registerButtonEvents() {
 
 async function main() {
     registerButtonEvents();
+    registerFastTrackEvents();
     registerSpectrogramEvents();
     registerKeyboardShortcuts();
 

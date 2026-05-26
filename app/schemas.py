@@ -30,6 +30,10 @@ class TokenRead(BaseModel):
     following_phone: str | None = None
     duration_ms: float | None = None
 
+    min_max_formant: float | None = None
+    max_max_formant: float | None = None
+    n_formants: int | None = None
+
     n_candidates: int
     auto_winner_panel: int
 
