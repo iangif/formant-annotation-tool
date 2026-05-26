@@ -3,6 +3,7 @@ import { displayValue } from "./utils.js";
 import { setControlsEnabled, fadeInSpectrogram, showToast } from "./ui.js";
 import { setAllPanelInputs } from "./panels.js";
 import { updateSpectrogramAspectRatio } from "./spectrogram.js";
+import { resetFastTrackStateForToken } from "./fasttrack.js";
 
 /**
  * Display the no-tokens-left state.
@@ -36,6 +37,7 @@ export function renderNoTokensRemaining() {
  */
 export function renderToken(token) {
     const autoWinner = token.auto_winner_panel;
+    resetFastTrackStateForToken(token);
 
     elements.tokenIdLabel.textContent = token.id;
 

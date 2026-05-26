@@ -42,6 +42,68 @@
                         <button id="close-praat-btn" class="btn btn-outline-secondary btn-sm">
                             Close Praat
                         </button>
+
+                        <div class="dropdown">
+                            <button
+                                id="fasttrack-menu-btn"
+                                class="btn btn-outline-dark btn-sm dropdown-toggle"
+                                type="button"
+                                data-bs-toggle="dropdown"
+                                data-bs-auto-close="outside"
+                                disabled
+                            >
+                                FastTrack
+                            </button>
+
+                            <div class="dropdown-menu dropdown-menu-end p-3 fasttrack-dropdown shadow">
+                                <div class="mb-2">
+                                    <label for="fasttrack-min-max-formant" class="form-label small mb-1">
+                                        Min max formant
+                                    </label>
+                                    <input
+                                        id="fasttrack-min-max-formant"
+                                        class="form-control form-control-sm"
+                                        type="number"
+                                        step="any"
+                                    >
+                                </div>
+
+                                <div class="mb-2">
+                                    <label for="fasttrack-max-max-formant" class="form-label small mb-1">
+                                        Max max formant
+                                    </label>
+                                    <input
+                                        id="fasttrack-max-max-formant"
+                                        class="form-control form-control-sm"
+                                        type="number"
+                                        step="any"
+                                    >
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="fasttrack-n-formants" class="form-label small mb-1">
+                                        N formants
+                                    </label>
+                                    <input
+                                        id="fasttrack-n-formants"
+                                        class="form-control form-control-sm"
+                                        type="number"
+                                        min="1"
+                                        max="6"
+                                    >
+                                </div>
+
+                                <div class="d-grid gap-2">
+                                    <button id="generate-fasttrack-btn" class="btn btn-primary btn-sm">
+                                        Generate
+                                    </button>
+
+                                    <button id="restore-original-btn" class="btn btn-outline-secondary btn-sm">
+                                        Restore Original
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

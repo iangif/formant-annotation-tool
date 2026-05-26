@@ -11,12 +11,19 @@ export function buildBasePayload(decision) {
         throw new Error("No token is currently loaded.");
     }
 
-    return {
+    const payload = {
         token_id: state.currentToken.id,
         annotator_id: annotatorId,
         decision: decision,
         notes: elements.notes.value.trim() || null,
+        image_source: state.displayedImageSource,
     };
+
+    if (state.displayedImageSource === "alternate") {
+        payload.fasttrack_params = state.alternateFastTrackParams;
+    }
+
+    return payload;
 }
 
 export function buildAcceptAutoPayload() {

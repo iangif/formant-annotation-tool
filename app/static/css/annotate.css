@@ -167,3 +167,12 @@ kbd {
 .toolbar .btn {
     line-height: 1.4;
 }
+
+.fasttrack-dropdown {
+    width: 260px;
+}
+
+.fasttrack-dropdown input::placeholder {
+    color: #adb6bd;
+    opacity: 1;
+}

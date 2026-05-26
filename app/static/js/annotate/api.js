@@ -4,6 +4,33 @@ import { setControlsEnabled } from "./ui.js";
 import { hidePanelHoverOverlay } from "./spectrogram.js";
 import { renderToken, renderNoTokensRemaining } from "./render.js";
 
+export function formatApiError(data, fallbackMessage) {
+    if (!data) {
+        return fallbackMessage;
+    }
+
+    if (typeof data.detail === "string") {
+        return data.detail;
+    }
+
+    if (Array.isArray(data.detail)) {
+        return data.detail
+            .map((error) => {
+                const field = error.loc?.slice(1).join(".");
+                const message = error.msg || "Invalid value.";
+
+                return field ? `${field}: ${message}` : message;
+            })
+            .join(" ");
+    }
+
+    if (typeof data.detail === "object") {
+        return JSON.stringify(data.detail);
+    }
+
+    return fallbackMessage;
+}
+
 /**
  * Load and display annotation progress.
  */
