@@ -262,7 +262,7 @@ def rerun_fasttrack_for_token(
     )
 
 @router.get("/tokens/{token_id}/fasttrack-image")
-def get_fasttrack_image(token_id: str) -> FileResponse:
+def get_fasttrack_image(token_id: str, cache_key: str | None = None) -> FileResponse:
     """
     Stream the temporary FastTrack spectrogram image for one token.
 
@@ -270,7 +270,7 @@ def get_fasttrack_image(token_id: str) -> FileResponse:
     state. The frontend can use this URL as an <img src>.
     """
 
-    image_path = get_temp_fasttrack_image_path(token_id)
+    image_path = get_temp_fasttrack_image_path(token_id, cache_key)
 
     if not image_path.exists():
         raise HTTPException(

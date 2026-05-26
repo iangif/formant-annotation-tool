@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import shutil
 import tempfile
+import hashlib
+import json
 
 from app.config import PROJECT_ROOT, STATIC_DIR
 from app.models import Token
@@ -47,11 +49,27 @@ class FastTrackPromotedFiles:
     image_path_value: str
     candidates_pickle_path_value: str | None
 
-def get_temp_fasttrack_image_path(token_id: str) -> Path:
-    return TEMP_FASTTRACK_DIR / f"{token_id}.png"
+def get_fasttrack_cache_key(params: FastTrackRequest) -> str:
+    payload = {
+        "min_max_formant": params.min_max_formant,
+        "max_max_formant": params.max_max_formant,
+        "n_formants": params.n_formants,
+    }
 
-def get_temp_fasttrack_pickle_path(token_id: str) -> Path:
-    return TEMP_FASTTRACK_DIR / f"{token_id}.pkl"
+    raw = json.dumps(payload, sort_keys=True).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()[:12]
+
+def get_temp_fasttrack_image_path(token_id: str, cache_key: str | None = None) -> Path:
+    if cache_key is None:
+        return TEMP_FASTTRACK_DIR / f"{token_id}.png"
+
+    return TEMP_FASTTRACK_DIR / f"{token_id}_{cache_key}.png"
+
+def get_temp_fasttrack_pickle_path(token_id: str, cache_key: str | None = None) -> Path:
+    if cache_key is None:
+        return TEMP_FASTTRACK_DIR / f"{token_id}.pkl"
+
+    return TEMP_FASTTRACK_DIR / f"{token_id}_{cache_key}.pkl"
 
 def clear_temp_fasttrack_files(token_id: str) -> None:
     """Delete temporary FastTrack files for one token if they exist."""
@@ -117,10 +135,17 @@ def generate_fasttrack_alternative(
 
     TEMP_FASTTRACK_DIR.mkdir(parents=True, exist_ok=True)
 
-    temp_image_path = get_temp_fasttrack_image_path(token.id)
-    temp_pickle_path = get_temp_fasttrack_pickle_path(token.id)
+    cache_key = get_fasttrack_cache_key(params)
 
-    clear_temp_fasttrack_files(token.id)
+    temp_image_path = get_temp_fasttrack_image_path(token.id, cache_key)
+    temp_pickle_path = get_temp_fasttrack_pickle_path(token.id, cache_key)
+
+    if temp_image_path.exists() and temp_pickle_path.exists():
+        return FastTrackGeneratedFiles(
+            image_path=temp_image_path,
+            pickle_path=temp_pickle_path,
+            image_url=f"/api/tokens/{token.id}/fasttrack-image?cache_key={cache_key}",
+        )
 
     try:
         from fasttrackpy import process_audio_textgrid
@@ -178,7 +203,7 @@ def generate_fasttrack_alternative(
     return FastTrackGeneratedFiles(
         image_path=temp_image_path,
         pickle_path=temp_pickle_path,
-        image_url=f"/api/tokens/{token.id}/fasttrack-image",
+        image_url=f"/api/tokens/{token.id}/fasttrack-image?cache_key={cache_key}",
     )
 
 def promote_fasttrack_alternative(

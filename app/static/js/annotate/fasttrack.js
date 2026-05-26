@@ -87,7 +87,8 @@ export async function generateFastTrackAlternative() {
         state.alternateImageUrl = data.alternate_image_url;
         state.alternateFastTrackParams = params;
 
-        elements.spectrogramImage.src = `${data.alternate_image_url}?t=${Date.now()}`;
+        const separator = data.alternate_image_url.includes("?") ? "&" : "?";
+        elements.spectrogramImage.src = `${data.alternate_image_url}${separator}t=${Date.now()}`;
 
         showToast(data.message || "Generated FastTrack alternative.", "success");
     
