@@ -1,6 +1,7 @@
 import { elements } from "./dom.js";
 import { state } from "./state.js";
 import { showToast, setControlsEnabled } from "./ui.js";
+import { formatApiError } from "./api.js";
 
 function setPlaceholder(input, value) {
     input.placeholder = value === null || value === undefined ? "" : String(value);
@@ -80,7 +81,9 @@ export async function generateFastTrackAlternative() {
         const data = await response.json().catch(() => null);
 
         if (!response.ok) {
-            throw new Error(data?.detail || "Failed to generate FastTrack alternative.");
+            throw new Error(
+                formatApiError(data || "Failed to generate FastTrack alternative.")
+            );
         }
 
         state.displayedImageSource = "alternate";
