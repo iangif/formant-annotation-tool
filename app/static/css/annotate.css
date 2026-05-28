@@ -176,3 +176,26 @@ kbd {
     color: #adb6bd;
     opacity: 1;
 }
+
+.formant-panel-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.formant-row {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.5rem;
+    border: 1px solid #dee2e6;
+    border-left-width: 5px;
+    border-radius: 0.5rem;
+    background: #fff;
+}
+
+.formant-f1 { border-left-color: #0072B2; }
+.formant-f2 { border-left-color: #D55E00; }
+.formant-f3 { border-left-color: #009E73; }
+.formant-f4 { border-left-color: #F0E442; }

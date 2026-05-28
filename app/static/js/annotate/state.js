@@ -4,6 +4,8 @@ export const state = {
     hoveredPanel: null,
 
     displayedImageSource: "original",
+    displayedAutoWinnerPanel: null,
+
     alternateImageUrl: null,
     alternateFastTrackParams: null,
 };
