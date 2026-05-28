@@ -8,4 +8,5 @@ export const state = {
 
     alternateImageUrl: null,
     alternateFastTrackParams: null,
+    fasttrackCacheKey: null,
 };

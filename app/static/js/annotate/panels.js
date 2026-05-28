@@ -11,6 +11,10 @@ export function readPanelInput(inputElement) {
         return null;
     }
 
+    if (!/^\d+$/.test(value)) {
+        return Number.NaN;
+    }
+
     return Number.parseInt(value, 10);
 }
 
@@ -32,20 +36,27 @@ export function readAllPanelInputs() {
 export function panelsAreValid(panels) {
     return panels.every(
         (panel) =>
-            Number.isInteger(panel) &&
-            panel >= MIN_PANEL &&
-            panel <= MAX_PANEL
+            panel === null ||
+            (
+                Number.isInteger(panel) &&
+                panel >= MIN_PANEL &&
+                panel <= MAX_PANEL
+            )
     );
+}
+
+export function hasAtLeastOnePanel(panels) {
+    return panels.some((panel) => panel !== null);
 }
 
 /**
  * Sets all panels given a panel number.
  */
 export function setAllPanelInputs(panelNumber) {
-    elements.panelF1.value = panelNumber;
-    elements.panelF2.value = panelNumber;
-    elements.panelF3.value = panelNumber;
-    elements.panelF4.value = panelNumber;
+    elements.panelF1.value = panelNumber ?? "";
+    elements.panelF2.value = panelNumber ?? "";
+    elements.panelF3.value = panelNumber ?? "";
+    elements.panelF4.value = panelNumber ?? "";
 }
 
 /**
@@ -70,4 +81,19 @@ export function flashPanelInputs() {
             input.classList.remove("selection-flash");
         }
     }, 160);
+}
+
+export function registerPanelInputEvents() {
+    const inputs = [
+        elements.panelF1,
+        elements.panelF2,
+        elements.panelF3,
+        elements.panelF4,
+    ];
+
+    for (const input of inputs) {
+        input.addEventListener("focus", () => {
+            input.select();
+        });
+    }
 }
