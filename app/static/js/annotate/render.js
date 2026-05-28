@@ -1,5 +1,6 @@
 import { elements } from "./dom.js";
 import { displayValue } from "./utils.js";
+import { state } from "./state.js";
 import { setControlsEnabled, fadeInSpectrogram, showToast } from "./ui.js";
 import { setAllPanelInputs } from "./panels.js";
 import { updateSpectrogramAspectRatio } from "./spectrogram.js";
@@ -38,6 +39,7 @@ export function renderNoTokensRemaining() {
 export function renderToken(token) {
     const autoWinner = token.auto_winner_panel;
     resetFastTrackStateForToken(token);
+    state.displayedAutoWinnerPanel = token.auto_winner_panel;
 
     elements.tokenIdLabel.textContent = token.id;
 

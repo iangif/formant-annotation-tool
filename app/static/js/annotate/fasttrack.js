@@ -2,6 +2,7 @@ import { elements } from "./dom.js";
 import { state } from "./state.js";
 import { showToast, setControlsEnabled } from "./ui.js";
 import { formatApiError } from "./api.js";
+import { setAllPanelInputs } from "./panels.js";
 
 function setPlaceholder(input, value) {
     input.placeholder = value === null || value === undefined ? "" : String(value);
@@ -9,8 +10,10 @@ function setPlaceholder(input, value) {
 
 export function resetFastTrackStateForToken(token) {
     state.displayedImageSource = "original";
+    state.displayedAutoWinnerPanel = token.auto_winner_panel;
     state.alternateImageUrl = null;
     state.alternateFastTrackParams = null;
+    state.fasttrackCacheKey = null;
 
     elements.fasttrackMinMaxFormant.value = "";
     elements.fasttrackMaxMaxFormant.value = "";
@@ -82,13 +85,18 @@ export async function generateFastTrackAlternative() {
 
         if (!response.ok) {
             throw new Error(
-                formatApiError(data || "Failed to generate FastTrack alternative.")
+                formatApiError(data, "Failed to generate FastTrack alternative.")
             );
         }
 
         state.displayedImageSource = "alternate";
+        state.displayedAutoWinnerPanel = data.auto_winner_panel;
         state.alternateImageUrl = data.alternate_image_url;
         state.alternateFastTrackParams = params;
+        state.fasttrackCacheKey = data.cache_key;
+
+        elements.metaAutoWinner.textContent = data.auto_winner_panel;
+        setAllPanelInputs(data.auto_winner_panel);
 
         const separator = data.alternate_image_url.includes("?") ? "&" : "?";
         elements.spectrogramImage.src = `${data.alternate_image_url}${separator}t=${Date.now()}`;
@@ -106,6 +114,11 @@ export function restoreOriginalImage() {
     }
 
     state.displayedImageSource = "original";
+    state.displayedAutoWinnerPanel = state.currentToken.auto_winner_panel;
+    state.fasttrackCacheKey = null;
+
+    elements.metaAutoWinner.textContent = state.currentToken.auto_winner_panel;
+    setAllPanelInputs(state.currentToken.auto_winner_panel);
 
     elements.spectrogramImage.src = `${state.currentToken.image_url}?t=${Date.now()}`;
 

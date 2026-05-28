@@ -85,6 +85,8 @@ class FastTrackRead(BaseModel):
 
     token_id: str
     alternate_image_url: str
+    auto_winner_panel: int = Field(ge=MIN_PANEL, le=MAX_PANEL)
+    cache_key: str
     message: str
 
 class AnnotationCreate(BaseModel):
@@ -98,6 +100,8 @@ class AnnotationCreate(BaseModel):
 
     image_source: ImageSource = "original"
     fasttrack_params: FastTrackRequest | None = None
+    displayed_auto_winner_panel: int | None = Field(default=None, ge=MIN_PANEL, le=MAX_PANEL)
+    fasttrack_cache_key: str | None = None
 
     selected_panel: int | None = Field(default=None, ge=MIN_PANEL, le=MAX_PANEL)
     panel_f1: int | None = Field(default=None, ge=MIN_PANEL, le=MAX_PANEL)
@@ -132,11 +136,20 @@ class AnnotationCreate(BaseModel):
         if self.decision == AnnotationDecision.complex:
             panels = [self.panel_f1, self.panel_f2, self.panel_f3, self.panel_f4]
 
-            if any(panel is None for panel in panels):
-                raise ValueError("panel_f1 through panel_f4 are required for complex")
+            if all(panel is None for panel in panels):
+                raise ValueError(
+                    "At least one of panel_f1 through panel_f4 is required for complex"
+                )
 
-            if len(set(panels)) == 1:
-                raise ValueError("complex requires at least one differing panel")
+        if self.image_source == "alternate":
+            if self.fasttrack_params is None:
+                raise ValueError("fasttrack_params is required for alternate image submissions")
+
+            if self.fasttrack_cache_key is None:
+                raise ValueError("fasttrack_cache_key is required for alternate image submissions")
+
+            if self.displayed_auto_winner_panel is None:
+                raise ValueError("displayed_auto_winner_panel is required for alternate image submissions")
 
         return self
 
