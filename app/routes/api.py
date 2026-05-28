@@ -258,6 +258,8 @@ def rerun_fasttrack_for_token(
     return FastTrackRead(
         token_id=token_id,
         alternate_image_url=result.image_url,
+        auto_winner_panel=result.auto_winner_panel,
+        cache_key=result.cache_key,
         message="Generated alternative FastTrack spectrogram.",
     )
 
@@ -306,7 +308,10 @@ def create_annotation(
             if token is None:
                 raise ValueError(f"Unknown token_id: {annotation_in.token_id}")
             
-            promoted = promote_fasttrack_alternative(token=token)
+            promoted = promote_fasttrack_alternative(
+                token=token,
+                cache_key=annotation_in.fasttrack_cache_key,
+            )
 
             token.image_path = promoted.image_path_value
             token.candidates_pickle_path = promoted.candidates_pickle_path_value
@@ -316,7 +321,11 @@ def create_annotation(
                 token.max_max_formant = annotation_in.fasttrack_params.max_max_formant
                 token.n_formants = annotation_in.fasttrack_params.n_formants
 
+            if annotation_in.displayed_auto_winner_panel is not None:
+                token.auto_winner_panel = annotation_in.displayed_auto_winner_panel
+
             db.add(token)
+            db.flush()
 
         annotation = crud.create_annotation(
             db=db,

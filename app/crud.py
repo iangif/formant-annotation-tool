@@ -82,7 +82,12 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
         raise ValueError(f"Token {annotation_in.token_id} is not assigned to annotator {annotation_in.annotator_id}")
     
     data = annotation_in.model_dump(
-        exclude={"image_source", "fasttrack_params"}
+        exclude={
+            "image_source",
+            "fasttrack_params",
+            "fasttrack_cache_key",
+            "displayed_auto_winner_panel",
+        }
     )
     winner = token.auto_winner_panel
 
@@ -111,6 +116,11 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
             annotation_in.panel_f3,
             annotation_in.panel_f4,
         ]
+        
+        if all(panel is None for panel in panels):
+            raise ValueError(
+                "At least one F1-F4 panel value is required. "
+            )
 
         if all(panel == winner for panel in panels):
             raise ValueError(
@@ -118,9 +128,11 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
                 "Use auto_accept instead."
             )
 
-        if len(set(panels)) == 1:
+        non_null_panels = [panel for panel in panels if panel is not None]
+
+        if (len(non_null_panels) == 4 and len(set(non_null_panels)) == 1):
             raise ValueError(
-                "complex requires at least one formant panel to differ."
+                "complex with four identical panels should be select_panel instead."
             )
 
         data["selected_panel"] = None

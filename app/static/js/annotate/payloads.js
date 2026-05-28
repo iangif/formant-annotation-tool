@@ -1,7 +1,11 @@
 import { elements, annotatorId } from "./dom.js";
 import { state } from "./state.js";
 import { MIN_PANEL, MAX_PANEL } from "./constants.js";
-import { readAllPanelInputs, panelsAreValid } from "./panels.js";
+import {
+    readAllPanelInputs,
+    panelsAreValid,
+    hasAtLeastOnePanel,
+} from "./panels.js";
 
 /**
  * Builds the base JSON payload
@@ -17,10 +21,12 @@ export function buildBasePayload(decision) {
         decision: decision,
         notes: elements.notes.value.trim() || null,
         image_source: state.displayedImageSource,
+        displayed_auto_winner_panel: state.displayedAutoWinnerPanel,
     };
 
     if (state.displayedImageSource === "alternate") {
         payload.fasttrack_params = state.alternateFastTrackParams;
+        payload.fasttrack_cache_key = state.fasttrackCacheKey;
     }
 
     return payload;
@@ -46,20 +52,25 @@ export function buildPanelFieldPayload() {
     const panels = readAllPanelInputs();
     
     if (!panelsAreValid(panels)) {
-        throw new Error(`F1-F4 panel values must be integers from ${MIN_PANEL} to ${MAX_PANEL}.`);
+        throw new Error(`F1-F4 panel values must be blank or integers from ${MIN_PANEL} to ${MAX_PANEL}.`);
+    }
+
+    if (!hasAtLeastOnePanel(panels)) {
+        throw new Error("At least one F1-F4 panel value is required.");
     }
 
     const [panelF1, panelF2, panelF3, panelF4] = panels;
-    const uniquePanels = new Set(panels);
-    const autoWinner = state.currentToken.auto_winner_panel;
+    const autoWinner = state.displayedAutoWinnerPanel;
 
-    if (panels.every((panel) => panel === autoWinner)) {
-        return {
-            ...buildBasePayload("accept_auto"),
-        };
+    const allFilled = panels.every((panel) => panel !== null);
+    const nonNullPanels = panels.filter((panel) => panel !== null);
+    const uniqueNonNullPanels = new Set(nonNullPanels);
+
+    if (allFilled && panels.every((panel) => panel === autoWinner)) {
+        return buildBasePayload("accept_auto");
     }
 
-    if (uniquePanels.size === 1) {
+    if (allFilled && uniqueNonNullPanels.size === 1) {
         const selectedPanel = panelF1;
 
         return {

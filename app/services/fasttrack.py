@@ -39,6 +39,8 @@ class FastTrackGeneratedFiles:
     image_path: Path
     pickle_path: Path
     image_url: str
+    cache_key: str
+    auto_winner_panel: int
 
 @dataclass(frozen=True)
 class FastTrackPromotedFiles:
@@ -70,15 +72,6 @@ def get_temp_fasttrack_pickle_path(token_id: str, cache_key: str | None = None) 
         return TEMP_FASTTRACK_DIR / f"{token_id}.pkl"
 
     return TEMP_FASTTRACK_DIR / f"{token_id}_{cache_key}.pkl"
-
-def clear_temp_fasttrack_files(token_id: str) -> None:
-    """Delete temporary FastTrack files for one token if they exist."""
-
-    for path in (
-        get_temp_fasttrack_image_path(token_id),
-        get_temp_fasttrack_pickle_path(token_id),
-    ):
-        path.unlink(missing_ok=True)
 
 def _resolve_project_path(path_value: str | None) -> Path | None:
     """
@@ -141,10 +134,17 @@ def generate_fasttrack_alternative(
     temp_pickle_path = get_temp_fasttrack_pickle_path(token.id, cache_key)
 
     if temp_image_path.exists() and temp_pickle_path.exists():
+        # Regenerate winner metadata cheaply from the cached pickle when possile.
+        from fasttrackpy.processors.outputs import unpickle_candidates
+
+        candidates = unpickle_candidates(temp_pickle_path)
+
         return FastTrackGeneratedFiles(
             image_path=temp_image_path,
             pickle_path=temp_pickle_path,
             image_url=f"/api/tokens/{token.id}/fasttrack-image?cache_key={cache_key}",
+            cache_key=cache_key,
+            auto_winner_panel=int(candidates.winner_idx),
         )
 
     try:
@@ -171,6 +171,7 @@ def generate_fasttrack_alternative(
             raise FastTrackGenerationError("FastTrackPy returned multiple candidates.")
 
         candidates = all_vowels[0]
+        auto_winner_panel = int(candidates.winner_idx)
 
         candidates.spectrograms(
             formants=params.n_formants,
@@ -204,11 +205,14 @@ def generate_fasttrack_alternative(
         image_path=temp_image_path,
         pickle_path=temp_pickle_path,
         image_url=f"/api/tokens/{token.id}/fasttrack-image?cache_key={cache_key}",
+        cache_key=cache_key,
+        auto_winner_panel=auto_winner_panel,
     )
 
 def promote_fasttrack_alternative(
     *,
     token: Token,
+    cache_key: str | None = None,
 ) -> FastTrackPromotedFiles:
     """
     Copy the temporary FastTrack result over the token's committed files.
@@ -216,8 +220,8 @@ def promote_fasttrack_alternative(
     After promotion, the temporary files are deleted.
     """
 
-    temp_image_path = get_temp_fasttrack_image_path(token.id)
-    temp_pickle_path = get_temp_fasttrack_pickle_path(token.id)
+    temp_image_path = get_temp_fasttrack_image_path(token.id, cache_key)
+    temp_pickle_path = get_temp_fasttrack_pickle_path(token.id, cache_key)
 
     if not temp_image_path.exists():
         raise FastTrackInputFileError(
@@ -242,7 +246,8 @@ def promote_fasttrack_alternative(
     committed_pickle_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(temp_pickle_path, committed_pickle_path)
 
-    clear_temp_fasttrack_files(token.id)
+    temp_image_path.unlink(missing_ok=True)
+    temp_pickle_path.unlink(missing_ok=True)
 
     return FastTrackPromotedFiles(
         image_path_value=str(committed_image_path.relative_to(PROJECT_ROOT)),
