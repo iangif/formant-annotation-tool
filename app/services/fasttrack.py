@@ -10,6 +10,12 @@ import shutil
 import tempfile
 import hashlib
 import json
+import os
+
+os.environ.setdefault("MPLBACKEND", "Agg")
+
+import matplotlib
+matplotlib.use("Agg", force=True)
 
 from app.config import PROJECT_ROOT, STATIC_DIR
 from app.models import Token
@@ -180,6 +186,9 @@ def generate_fasttrack_alternative(
             file_name=str(temp_image_path),
             dpi=150,
         )
+
+        import matplotlib.pyplot as plt
+        plt.close("all")
 
         pickle_candidates(candidates, str(temp_pickle_path))
 
