@@ -218,6 +218,16 @@ def open_token_in_praat(audio_path_value: str | None, textgrid_path_value: str |
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
+
+        # Bring Praat to the front on MacOS 
+        if platform.system() == "Darwin":
+            subprocess.run(
+                ["osascript", "-e", 'tell application "Praat" to activate'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+
     except OSError as exc:
         _praat_process = None
         raise PraatConfigurationError(
