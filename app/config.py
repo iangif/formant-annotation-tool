@@ -31,8 +31,9 @@ FORMANT_DB_URL = os.getenv(
     f"sqlite:///./data/{ANNOTATOR_ID}.sqlite",
 )
 
+REMOTE_USER_HOST = os.getenv("REMOTE_USER_HOST", "")
 REMOTE_PROJECT_ROOT = Path(os.getenv("REMOTE_PROJECT_ROOT", "/projects/xling-measures"))
-REMOVE_FORMANT_ROOT = Path(os.getenv("REMOTE_FORMANTS_ROOT", str(REMOTE_PROJECT_ROOT), "formants"))
+REMOTE_CONFIG_DIR = f"{REMOTE_PROJECT_ROOT}/formants/config"
 
 PRAAT_PATH = os.getenv("PRAAT_PATH") or None
 
