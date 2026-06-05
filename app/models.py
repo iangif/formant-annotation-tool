@@ -104,6 +104,18 @@ class Token(Base):
     batch: Mapped[Batch] = relationship(back_populates="tokens")
 
     @property
+    def speaker_id(self) -> str | None:
+        return self.speaker
+
+    @property
+    def vowel_label(self) -> str | None:
+        return self.phone
+
+    @property
+    def preceding_phone(self) -> str | None:
+        return self.previous_phone
+
+    @property
     def duration_ms(self) -> float | None:
         if self.phone_begin_corrected is None or self.phone_end_corrected is None:
             return None
