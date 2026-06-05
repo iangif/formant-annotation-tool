@@ -13,3 +13,5 @@ wheels/
 .env
 
 data/*.sqlite
+data/corpora*
+data/sync_manifest.json
