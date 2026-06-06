@@ -49,6 +49,7 @@ class Token(Base):
 
     corpus_id: Mapped[int] = mapped_column(ForeignKey("corpora.id"), index=True, nullable=False)
     batch_id: Mapped[int] = mapped_column(ForeignKey("batches.id"), index=True, nullable=False)
+    batch_index: Mapped[int] = mapped_column(Integer, index=True, nullable=False, default=0)
 
     # For accessing related files on disk
     file_stem: Mapped[str] = mapped_column(String, index=True, nullable=False)
