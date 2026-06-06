@@ -9,16 +9,6 @@ from app.routes.utils import token_to_read
 
 router = APIRouter(prefix="/tokens", tags=["tokens"])
 
-@router.get("/next", response_model=TokenRead | None)
-def get_next_token(
-    annotator_id: str = Query(default=ANNOTATOR_ID),
-    db: Session = Depends(get_db),
-) -> TokenRead | None:
-    """Returns the next unannotated token assigned to the annotator"""
-
-    token = crud.get_next_token(db=db, annotator_id=annotator_id)
-    return token_to_read(token) if token else None
-
 @router.get("/{token_id}", response_model=TokenRead)
 def get_token(
     token_id: str,

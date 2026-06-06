@@ -65,28 +65,6 @@ def is_token_assigned(db: Session, token_id: str, annotator_id: str) -> bool:
     )
     return db.scalar(stmt) is not None
 
-def get_next_token(db: Session, annotator_id: str) -> Token | None:
-    """
-    Returns the lowest-index unannotated token across assigned batches.
-    """
-
-    annotated = (
-        select(Annotation.id)
-        .where(Annotation.token_id == Token.id)
-        .where(Annotation.annotator_id == annotator_id)
-        .exists()
-    )
-    
-    stmt = (
-        select(Token)
-        .join(Assignment, Assignment.batch_id == Token.batch_id)
-        .where(Assignment.annotator_id == annotator_id)
-        .where(~annotated)
-        .order_by(Token.batch_id, Token.batch_index)
-        .limit(1)
-    )
-    return db.scalar(stmt)
-
 def get_assigned_batches_with_progress(
     db: Session,
     annotator_id: str,
