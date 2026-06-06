@@ -7,6 +7,8 @@ These models define the API contract:
 - what the backend validates before writing to database
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 from app.models import AnnotationDecision
@@ -42,6 +44,35 @@ class TokenRead(BaseModel):
     textgrid_url: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class TokenSummaryRead(BaseModel):
+    """
+    List of tokens for a batch overview.
+    """
+
+    id: str
+    token_id: str
+    batch_id: int
+    batch_index: int
+    file_stem: str
+
+    phone: str | None = None
+    ipa: str | None = None
+    word: str | None = None
+    speaker: str | None = None
+
+    is_annotated: bool
+    latest_decision: AnnotationDecision | None = None
+
+class BatchTokenRead(TokenRead):
+    """
+    Additional information to render one token.
+    """
+
+    batch_id: int
+    batch_index: int
+    latest_annotation: AnnotationRead | None = None
+    is_annotated: bool
 
 class OpenPraatRead(BaseModel):
     """
@@ -183,3 +214,16 @@ class ProgressRead(BaseModel):
     assigned_total: int
     annotated_total: int
     remaining_total: int
+
+class BatchProgressRead(BaseModel):
+    """
+    Progress summary for one an annotator's assigned batch.
+    """
+    id: int
+    corpus: str
+    name: str
+    completed_count: int
+    total_count: int
+    remaining_count: int
+    first_unfinished_index: int | None = None
+    is_last_opened: bool = False
