@@ -135,6 +135,7 @@ def token_values(
     batch_root: Path,
     fasttrack_winners: dict[str, int],
     corpus_config: dict,
+    batch_index: int,
 ) -> dict:
     file_stem = row["file"]
     token_id = build_token_id(corpus.name, row)
@@ -149,6 +150,7 @@ def token_values(
         "token_id": token_id,
         "corpus_id": corpus.id,
         "batch_id": batch.id,
+        "batch_index": batch_index,
         "file_stem": file_stem,
         "speaker": empty_to_none(row.get("speaker")),
         "gender": empty_to_none(row.get("gender")),
@@ -221,7 +223,7 @@ def sync_one_batch(db, batch_root: Path) -> int:
     count = 0
     with csv_path.open(newline="", encoding="utf-8") as file:
         reader = csv.DictReader(file)
-        for row in reader:
+        for batch_index, row in enumerate(reader):
             upsert_token(
                 db,
                 token_values(
@@ -231,6 +233,7 @@ def sync_one_batch(db, batch_root: Path) -> int:
                     batch_root,
                     fasttrack_winners,
                     corpus_config,
+                    batch_index=batch_index,
                 ),
             )
             count += 1
