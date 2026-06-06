@@ -35,6 +35,36 @@
                     <div class="toolbar d-flex align-items-center gap-2 px-2 py-1 border rounded bg-white shadow-sm">
                         <span class="small text-muted me-1">Tools</span>
 
+                        <div class="dropdown">
+                            <button
+                                id="batch-menu-btn"
+                                class="btn btn-outline-success btn-sm dropdown-toggle"
+                                type="button"
+                                data-bs-toggle="dropdown"
+                                disabled
+                            >
+                                Batch
+                            </button>
+
+                            <ul
+                                id="batch-menu"
+                                class="dropdown-menu batch-dropdown shadow"
+                                aria-labelledby="batch-menu-btn"
+                            ></ul>
+                        </div>
+
+                        <button id="previous-token-btn" class="btn btn-outline-secondary btn-sm" disabled>
+                            ← Prev
+                        </button>
+
+                        <button id="next-token-btn" class="btn btn-outline-secondary btn-sm" disabled>
+                            Next →
+                        </button>
+
+                        <button id="skip-token-btn" class="btn btn-outline-secondary btn-sm" disabled>
+                            Skip
+                        </button>
+
                         <button id="open-praat-btn" class="btn btn-outline-primary btn-sm" disabled>
                             Open Praat
                         </button>
@@ -109,7 +139,10 @@
 
                 <div class="text-end">
                     <div id="progress-label" class="small text-muted">
-                        Loading progress...
+                        Loading batches...
+                    </div>
+                    <div id="batch-position-label" class="small text-muted">
+                        —
                     </div>
                     <button id="reload-token-btn" class="btn btn-outline-secondary btn-sm mt-2">
                         Reload token
@@ -175,8 +208,9 @@
             <!-- Annotation controls and metadata. -->
             <aside class="right-panel">
                 <div class="card shadow-sm mb-3">
-                    <div class="card-header fw-semibold">
-                        Token metadata
+                    <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                        <span class="fw-semibold">Token metadata</span>
+                        <span id="token-status-badge" class="badge text-bg-secondary">No token</span>
                     </div>
 
                     <div class="card-body">
@@ -215,6 +249,8 @@
                     <div class="card-body">
                         <p class="small text-muted">
                             Current hotkeys:
+                            <kbd>←</kbd>/<kbd>→</kbd> browse,
+                            <kbd>S</kbd> skip,
                             <kbd>Space</kbd> accept auto,
                             <kbd>Enter</kbd> save F1-F4 fields,
                             <kbd>B</kbd> bad token,
