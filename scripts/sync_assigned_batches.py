@@ -94,17 +94,28 @@ def sync_corpus_config(corpus: str) -> Path:
     return local_config_dir / f"{corpus}.yaml"
 
 def assigned_batches_from_corpus_config(corpus: str, config: dict[str, Any], annotator_id: str) -> list[AssignedBatch]:
-    batch_names = config.get("batches", {}).keys()
+    batch_names = (config.get("batches") or {}).keys()
 
     assigned: list[AssignedBatch] = []
     for batch_name in batch_names:
-        annotators = config.get(batch_name, [])
+        raw_annotators = config.get(batch_name)
+
+        if raw_annotators is None:
+            annotators: list[str] = []
+        elif isinstance(raw_annotators, list):
+            annotators = [str(value) for value in raw_annotators]
+        else:
+            raise ValueError(
+                f"Expected batch assignment for {batch_name!r} to be a list or empty, "
+                f"but got {type(raw_annotators).__name__}."
+            )
+
         if annotator_id in annotators:
             assigned.append(AssignedBatch(corpus=corpus, batch=str(batch_name)))
 
     return assigned
 
-def sync_batch(item: AssignedBatch, config: dict[str, Any]) -> dict[str, Any]:
+def sync_batch(item: AssignedBatch, config: dict[str, Any]) -> dict[str, Any] | None:
     output_root = config["output_root"]
     csv_output_dir = config["csv_output_dir"]
 
@@ -116,6 +127,15 @@ def sync_batch(item: AssignedBatch, config: dict[str, Any]) -> dict[str, Any]:
 
     remote_csv = f"{csv_output_dir.rstrip('/')}/{item.batch}.csv"
     remote_fasttrack_csv = f"{csv_output_dir.rstrip('/')}/{item.batch}_fasttrack.csv"
+
+    if not remote_file_exists(remote_csv):
+        print(f"Skipping {item.corpus}/{item.batch}: missing remote batch CSV: {remote_csv}")
+        return None
+
+    if not remote_file_exists(remote_fasttrack_csv):
+        print(f"Skipping {item.corpus}/{item.batch}: missing remote FastTrack CSV: {remote_fasttrack_csv}")
+        return None
+
     remote_batch_root = f"{output_root.rstrip('/')}/{item.batch}"
     remote_audio_dir = f"{remote_batch_root}/audio"
     remote_images_dir = f"{remote_batch_root}/images"
@@ -194,6 +214,14 @@ def validate_corpus_exists(corpus: str) -> None:
             + "\n"
         )
 
+def remote_file_exists(remote_path: str) -> bool:
+    """Return True if a file exists on the remote server."""
+    result = subprocess.run(
+        ["ssh", REMOTE_USER_HOST, "test", "-f", remote_path],
+        capture_output=True,
+    )
+    return result.returncode == 0
+
 def available_remote_corpora() -> list[str]:
     result = subprocess.run(
         ["ssh", REMOTE_USER_HOST, f"ls {REMOTE_CONFIG_DIR}/*.yaml 2>/dev/null"],
@@ -237,6 +265,10 @@ def main() -> None:
 
     for item in assigned_batches:
         summary = sync_batch(item, config)
+
+        if summary is None:
+            continue
+
         manifest["batches"][f"{item.corpus}/{item.batch}"] = summary
         print(f"{f'Synced {item.corpus}/{item.batch}':=<70}")
 
