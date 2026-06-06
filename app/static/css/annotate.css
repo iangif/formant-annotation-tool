@@ -199,3 +199,17 @@ kbd {
 .formant-f2 { border-left-color: #D55E00; }
 .formant-f3 { border-left-color: #009E73; }
 .formant-f4 { border-left-color: #F0E442; }
+
+.batch-dropdown {
+    min-width: 260px;
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.batch-menu-item.active .opacity-75 {
+    opacity: 0.9 !important;
+}
+
+#batch-position-label {
+    font-variant-numeric: tabular-nums;
+}
