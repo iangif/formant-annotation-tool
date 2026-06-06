@@ -5,6 +5,7 @@ export const annotatorId = document
 
 export const elements = {
     progressLabel: document.getElementById("progress-label"),
+    batchPositionLabel: document.getElementById("batch-position-label"),
     toastContainer: document.getElementById("toast-container"),
     toastTemplate: document.getElementById("toast-template"),
 
@@ -18,6 +19,7 @@ export const elements = {
     panelHoverLabel: document.getElementById("panel-hover-label"),
 
     tokenIdLabel: document.getElementById("token-id-label"),
+    tokenStatusBadge: document.getElementById("token-status-badge"),
 
     metaWord: document.getElementById("meta-word"),
     metaVowel: document.getElementById("meta-vowel"),
@@ -35,6 +37,12 @@ export const elements = {
     panelF4: document.getElementById("panel-f4"),
 
     notes: document.getElementById("notes"),
+
+    batchMenuBtn: document.getElementById("batch-menu-btn"),
+    batchMenu: document.getElementById("batch-menu"),
+    previousTokenBtn: document.getElementById("previous-token-btn"),
+    nextTokenBtn: document.getElementById("next-token-btn"),
+    skipTokenBtn: document.getElementById("skip-token-btn"),
 
     reloadTokenBtn: document.getElementById("reload-token-btn"),
     openPraatBtn: document.getElementById("open-praat-btn"),

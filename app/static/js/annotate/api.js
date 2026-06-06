@@ -2,7 +2,12 @@ import { elements, annotatorId } from "./dom.js";
 import { state } from "./state.js";
 import { setControlsEnabled } from "./ui.js";
 import { hidePanelHoverOverlay } from "./spectrogram.js";
-import { renderToken, renderNoTokensRemaining } from "./render.js";
+import {
+    renderBatchMenu,
+    renderBatchProgress,
+    renderNoAssignedBatches,
+    renderToken,
+} from "./render.js";
 
 export function formatApiError(data, fallbackMessage) {
     if (!data) {
@@ -18,7 +23,6 @@ export function formatApiError(data, fallbackMessage) {
             .map((error) => {
                 const field = error.loc?.slice(1).join(".");
                 const message = error.msg || "Invalid value.";
-
                 return field ? `${field}: ${message}` : message;
             })
             .join(" ");
@@ -31,91 +35,237 @@ export function formatApiError(data, fallbackMessage) {
     return fallbackMessage;
 }
 
-/**
- * Load and display annotation progress.
- */
-export async function loadProgress() {
-    const response = await fetch(`/api/progress?annotator_id=${encodeURIComponent(annotatorId)}`);
+async function fetchJson(url, options = {}, fallbackMessage = "Request failed.") {
+    const response = await fetch(url, options);
+    const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-        throw new Error("Failed to load progress.");
+        throw new Error(formatApiError(data, fallbackMessage));
     }
 
-    const progress = await response.json();
-
-    elements.progressLabel.textContent =
-        `${progress.annotated_total} / ${progress.assigned_total} annotated ` +
-        `(${progress.remaining_total} remaining)`;
+    return data;
 }
 
-/**
- * Load the next available token for this annotator.
- */
-export async function loadNextToken() {
+export function getCurrentBatchTokenSummary() {
+    if (state.currentBatchIndex === null) {
+        return null;
+    }
+
+    return state.currentBatchTokens.find(
+        (token) => token.batch_index === state.currentBatchIndex
+    ) || null;
+}
+
+export function updateCurrentBatchTokenSummaryFromLoadedToken(token) {
+    const summary = getCurrentBatchTokenSummary();
+
+    if (!summary || !token.latest_annotation) {
+        return;
+    }
+
+    summary.is_annotated = token.is_annotated;
+    summary.latest_decision = token.latest_annotation.decision;
+}
+
+export async function refreshBatches() {
+    state.batches = await fetchJson(
+        `/api/batches?annotator_id=${encodeURIComponent(annotatorId)}`,
+        {},
+        "Failed to load batches."
+    );
+
+    if (state.currentBatchId !== null) {
+        state.currentBatchProgress = state.batches.find(
+            (batch) => batch.id === state.currentBatchId
+        ) || null;
+    }
+
+    renderBatchMenu();
+    renderBatchProgress();
+    return state.batches;
+}
+
+export async function loadBatchTokens(batchId) {
+    state.currentBatchTokens = await fetchJson(
+        `/api/batches/${encodeURIComponent(batchId)}/tokens?annotator_id=${encodeURIComponent(annotatorId)}`,
+        {},
+        "Failed to load batch tokens."
+    );
+
+    return state.currentBatchTokens;
+}
+
+export async function markBatchLastOpened(batchId) {
+    await fetchJson(
+        `/api/batches/${encodeURIComponent(batchId)}/last-opened?annotator_id=${encodeURIComponent(annotatorId)}`,
+        { method: "POST" },
+        "Failed to store last-opened batch."
+    );
+}
+
+export async function loadTokenAtIndex(index) {
+    if (state.currentBatchId === null) {
+        throw new Error("No batch is currently open.");
+    }
+
     setControlsEnabled(false);
     hidePanelHoverOverlay();
 
     elements.emptyState.classList.remove("d-none");
-    elements.emptyState.textContent = "Loading next token...";
+    elements.emptyState.textContent = "Loading token...";
     elements.spectrogramWrapper.classList.add("d-none");
 
-    const response = await fetch(`/api/tokens/next?annotator_id=${encodeURIComponent(annotatorId)}`);
+    const token = await fetchJson(
+        `/api/batches/${encodeURIComponent(state.currentBatchId)}/tokens/${encodeURIComponent(index)}?annotator_id=${encodeURIComponent(annotatorId)}`,
+        {},
+        "Failed to load token."
+    );
 
-    if (!response.ok) {
-        throw new Error("Failed to load next token.");
+    state.currentToken = token;
+    state.currentBatchIndex = token.batch_index;
+
+    renderToken(token);
+    setControlsEnabled(true);
+}
+
+export async function openBatch(batchId, preferredIndex = null) {
+    setControlsEnabled(false);
+
+    state.currentBatchId = batchId;
+    state.currentBatchProgress = state.batches.find((batch) => batch.id === batchId) || null;
+    state.currentToken = null;
+    state.currentBatchIndex = null;
+    state.skippedIndices = new Set();
+
+    await markBatchLastOpened(batchId);
+    await loadBatchTokens(batchId);
+
+    const startIndex = preferredIndex ?? state.currentBatchProgress?.first_unfinished_index ?? 0;
+
+    renderBatchMenu();
+    renderBatchProgress();
+
+    if (state.currentBatchTokens.length === 0) {
+        throw new Error("This batch has no tokens.");
     }
 
-    const token = await response.json();
+    await loadTokenAtIndex(startIndex);
+}
 
-    if (token === null) {
-        state.currentToken = null;
-        renderNoTokensRemaining();
-        await loadProgress();
+export async function initializeBatches() {
+    await refreshBatches();
+
+    if (state.batches.length === 0) {
+        renderNoAssignedBatches();
+        setControlsEnabled(false);
         return;
     }
 
-    state.currentToken = token;
-    renderToken(token);
-    setControlsEnabled(true);
-    await loadProgress();
+    const defaultBatch =
+        state.batches.find((batch) => batch.is_last_opened) ||
+        state.batches[0];
+
+    await openBatch(defaultBatch.id);
 }
 
-/**
- * Ask the backend to open the current token in Praat.
- */
+export function getSortedBatchIndices() {
+    return state.currentBatchTokens
+        .map((token) => token.batch_index)
+        .sort((a, b) => a - b);
+}
+
+export function getAdjacentBatchIndex(direction) {
+    const indices = getSortedBatchIndices();
+
+    if (indices.length === 0 || state.currentBatchIndex === null) {
+        return null;
+    }
+
+    const position = indices.indexOf(state.currentBatchIndex);
+
+    if (position === -1) {
+        return indices[0];
+    }
+
+    const nextPosition = position + direction;
+
+    if (nextPosition < 0 || nextPosition >= indices.length) {
+        return null;
+    }
+
+    return indices[nextPosition];
+}
+
+export function getNextUnfinishedIndexAfterCurrent() {
+    const indices = getSortedBatchIndices();
+
+    if (indices.length === 0) {
+        return null;
+    }
+
+    const currentPosition = Math.max(0, indices.indexOf(state.currentBatchIndex));
+    const afterCurrent = indices.slice(currentPosition + 1);
+
+    const nextUnfinished = afterCurrent.find((index) => {
+        const summary = state.currentBatchTokens.find((token) => token.batch_index === index);
+        return summary && !summary.is_annotated && !state.skippedIndices.has(index);
+    });
+
+    return nextUnfinished ?? indices[0];
+}
+
+export async function loadAdjacentToken(direction) {
+    const nextIndex = getAdjacentBatchIndex(direction);
+
+    if (nextIndex === null) {
+        return;
+    }
+
+    await loadTokenAtIndex(nextIndex);
+}
+
+export async function loadNextUnfinishedOrBeginning() {
+    const nextIndex = getNextUnfinishedIndexAfterCurrent();
+
+    if (nextIndex === null) {
+        return;
+    }
+
+    await loadTokenAtIndex(nextIndex);
+}
+
+export async function skipCurrentToken() {
+    if (state.currentBatchIndex !== null) {
+        state.skippedIndices.add(state.currentBatchIndex);
+    }
+
+    await loadNextUnfinishedOrBeginning();
+}
+
+export async function reloadCurrentToken() {
+    if (state.currentBatchIndex === null) {
+        return;
+    }
+
+    await loadTokenAtIndex(state.currentBatchIndex);
+}
+
 export async function openCurrentTokenInPraat() {
     if (!state.currentToken) {
         throw new Error("No token is currently loaded.");
     }
 
-    const response = await fetch(`/api/tokens/${encodeURIComponent(state.currentToken.id)}/open-praat`, {
-        method: "POST",
-    });
-
-    const data = await response.json().catch(() => null);
-
-    if (!response.ok) {
-        const message = data?.detail || "Failed to open token in Praat.";
-        throw new Error(message);
-    }
-
-    return data;
+    return await fetchJson(
+        `/api/tokens/${encodeURIComponent(state.currentToken.id)}/open-praat`,
+        { method: "POST" },
+        "Failed to open token in Praat."
+    );
 }
 
-/**
- * Ask the backend to close the Praat process opened by this app.
- */
 export async function closePraat() {
-    const response = await fetch("/api/praat/close", {
-        method: "POST",
-    });
-
-    const data = await response.json().catch(() => null);
-
-    if (!response.ok) {
-        const message = data?.detail || "Failed to close Praat.";
-        throw new Error(message);
-    }
-
-    return data;
+    return await fetchJson(
+        "/api/praat/close",
+        { method: "POST" },
+        "Failed to close Praat."
+    );
 }

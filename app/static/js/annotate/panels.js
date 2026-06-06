@@ -59,6 +59,20 @@ export function setAllPanelInputs(panelNumber) {
     elements.panelF4.value = panelNumber ?? "";
 }
 
+
+/**
+ * Prefill F1-F4 panel inputs from the latest annotation row.
+ * Falls back to selected_panel when the annotation represents one panel for all formants.
+ */
+export function setPanelInputsFromAnnotation(annotation) {
+    const fallbackPanel = annotation.selected_panel ?? "";
+
+    elements.panelF1.value = annotation.panel_f1 ?? fallbackPanel;
+    elements.panelF2.value = annotation.panel_f2 ?? fallbackPanel;
+    elements.panelF3.value = annotation.panel_f3 ?? fallbackPanel;
+    elements.panelF4.value = annotation.panel_f4 ?? fallbackPanel;
+}
+
 /**
  * Briefly flashes the F1-F4 inputs after panel selection.
  */

@@ -3,6 +3,13 @@ export const state = {
     isSaving: false,
     hoveredPanel: null,
 
+    batches: [],
+    currentBatchId: null,
+    currentBatchProgress: null,
+    currentBatchTokens: [],
+    currentBatchIndex: null,
+    skippedIndices: new Set(),
+
     displayedImageSource: "original",
     displayedAutoWinnerPanel: null,
 

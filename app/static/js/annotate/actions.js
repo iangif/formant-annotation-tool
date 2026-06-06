@@ -1,12 +1,18 @@
 import { state } from "./state.js";
 import { setControlsEnabled, showToast, flashSaveConfirmation, fadeOutSpectrogram } from "./ui.js";
-import { loadNextToken, closePraat } from "./api.js";
+import {
+    closePraat,
+    loadNextUnfinishedOrBeginning,
+    refreshBatches,
+    updateCurrentBatchTokenSummaryFromLoadedToken,
+} from "./api.js";
 import {
     buildAcceptAutoPayload,
     buildBadTokenPayload,
     buildNeedsCorrectionPayload,
     buildPanelFieldPayload,
 } from "./payloads.js";
+import { renderBatchMenu, renderBatchProgress } from "./render.js";
 
 export async function savePayload(payload) {
     if (!state.currentToken || state.isSaving) {
@@ -31,6 +37,11 @@ export async function savePayload(payload) {
             throw new Error(message);
         }
 
+        const savedAnnotation = await response.json();
+        state.currentToken.latest_annotation = savedAnnotation;
+        state.currentToken.is_annotated = true;
+        updateCurrentBatchTokenSummaryFromLoadedToken(state.currentToken);
+
         flashSaveConfirmation();
 
         try {
@@ -39,8 +50,12 @@ export async function savePayload(payload) {
             showToast(error.message, "warning");
         }
 
+        await refreshBatches();
+        renderBatchMenu();
+        renderBatchProgress();
+
         await fadeOutSpectrogram();
-        await loadNextToken();
+        await loadNextUnfinishedOrBeginning();
 
     } catch (error) {
         showToast(error.message, "danger");

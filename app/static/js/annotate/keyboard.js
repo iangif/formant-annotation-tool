@@ -4,9 +4,12 @@ import {
     saveNeedsCorrection,
     saveCurrentPanelFields,
 } from "./actions.js";
+import { loadAdjacentToken, skipCurrentToken } from "./api.js";
+import { showToast } from "./ui.js";
 
 /**
  * Ignore hotkeys while the user is typing into form fields.
+ * Enter remains handled before this check so formant fields can submit quickly.
  */
 export function isTypingInInput(event) {
     const tagName = event.target.tagName.toLowerCase();
@@ -14,11 +17,19 @@ export function isTypingInInput(event) {
     return tagName === "input" || tagName === "textarea" || tagName === "select";
 }
 
+async function runShortcut(callback) {
+    try {
+        await callback();
+    } catch (error) {
+        showToast(error.message, "danger");
+    }
+}
+
 export function registerKeyboardShortcuts() {
     document.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
             event.preventDefault();
-            saveCurrentPanelFields();
+            runShortcut(saveCurrentPanelFields);
             return;
         }
 
@@ -26,22 +37,39 @@ export function registerKeyboardShortcuts() {
             return;
         }
 
+        if (event.key === "ArrowRight") {
+            event.preventDefault();
+            runShortcut(() => loadAdjacentToken(1));
+            return;
+        }
+
+        if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            runShortcut(() => loadAdjacentToken(-1));
+            return;
+        }
+
+        if (event.key.toLowerCase() === "s") {
+            event.preventDefault();
+            runShortcut(skipCurrentToken);
+            return;
+        }
+
         if (event.code === "Space") {
             event.preventDefault();
-            saveAcceptAuto();
+            runShortcut(saveAcceptAuto);
             return;
         }
 
         if (event.key.toLowerCase() === "b") {
             event.preventDefault();
-            saveBadToken();
+            runShortcut(saveBadToken);
             return;
         }
 
         if (event.key.toLowerCase() === "x") {
             event.preventDefault();
-            saveNeedsCorrection();
-            return;
+            runShortcut(saveNeedsCorrection);
         }
     });
 }

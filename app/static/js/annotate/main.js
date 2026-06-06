@@ -1,7 +1,15 @@
 import { elements } from "./dom.js";
 import { state } from "./state.js";
 import { showToast, setControlsEnabled } from "./ui.js";
-import { loadNextToken, openCurrentTokenInPraat, closePraat } from "./api.js";
+import {
+    initializeBatches,
+    openBatch,
+    openCurrentTokenInPraat,
+    closePraat,
+    loadAdjacentToken,
+    reloadCurrentToken,
+    skipCurrentToken,
+} from "./api.js";
 import { registerSpectrogramEvents } from "./spectrogram.js";
 import { registerKeyboardShortcuts } from "./keyboard.js";
 import {
@@ -12,9 +20,48 @@ import { registerFastTrackEvents } from "./fasttrack.js";
 import { registerPanelInputEvents } from "./panels.js";
 
 function registerButtonEvents() {
+    elements.batchMenu.addEventListener("click", async (event) => {
+        const button = event.target.closest("[data-batch-id]");
+
+        if (!button) {
+            return;
+        }
+
+        try {
+            await openBatch(Number.parseInt(button.dataset.batchId, 10));
+        } catch (error) {
+            showToast(error.message, "danger");
+            setControlsEnabled(false);
+        }
+    });
+
+    elements.previousTokenBtn.addEventListener("click", async () => {
+        try {
+            await loadAdjacentToken(-1);
+        } catch (error) {
+            showToast(error.message, "danger");
+        }
+    });
+
+    elements.nextTokenBtn.addEventListener("click", async () => {
+        try {
+            await loadAdjacentToken(1);
+        } catch (error) {
+            showToast(error.message, "danger");
+        }
+    });
+
+    elements.skipTokenBtn.addEventListener("click", async () => {
+        try {
+            await skipCurrentToken();
+        } catch (error) {
+            showToast(error.message, "danger");
+        }
+    });
+
     elements.reloadTokenBtn.addEventListener("click", async () => {
         try {
-            await loadNextToken();
+            await reloadCurrentToken();
         } catch (error) {
             showToast(error.message, "danger");
         }
@@ -65,7 +112,7 @@ async function main() {
     registerResizeHandle();
 
     try {
-        await loadNextToken();
+        await initializeBatches();
     } catch (error) {
         showToast(error.message, "danger");
         setControlsEnabled(false);

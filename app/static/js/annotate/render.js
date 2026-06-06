@@ -2,17 +2,20 @@ import { elements } from "./dom.js";
 import { displayValue } from "./utils.js";
 import { state } from "./state.js";
 import { setControlsEnabled, fadeInSpectrogram, showToast } from "./ui.js";
-import { setAllPanelInputs } from "./panels.js";
+import { setAllPanelInputs, setPanelInputsFromAnnotation } from "./panels.js";
 import { updateSpectrogramAspectRatio } from "./spectrogram.js";
 import { resetFastTrackStateForToken } from "./fasttrack.js";
 
-/**
- * Display the no-tokens-left state.
- */
-export function renderNoTokensRemaining() {
-    elements.tokenIdLabel.textContent = "Complete";
+function setStatusBadge(label, className) {
+    elements.tokenStatusBadge.textContent = label;
+    elements.tokenStatusBadge.className = `badge ${className}`;
+}
+
+function clearTokenDisplay(message) {
+    elements.tokenIdLabel.textContent = "No token loaded";
     elements.emptyState.classList.remove("d-none");
-    elements.emptyState.textContent = "No remaining assigned tokens.";
+    elements.emptyState.textContent = message;
+    elements.spectrogramWrapper.classList.add("d-none");
     elements.spectrogramImage.classList.add("d-none");
 
     elements.metaWord.textContent = "—";
@@ -28,14 +31,112 @@ export function renderNoTokensRemaining() {
 
     setAllPanelInputs("");
     elements.notes.value = "";
-
-    setControlsEnabled(false);
-    showToast("All assigned tokens have been annotated.", "success");
 }
 
-/**
- * Render one token in the UI.
- */
+export function renderNoAssignedBatches() {
+    clearTokenDisplay("No local batches are assigned to this annotator. Run the sync scripts first.");
+    elements.progressLabel.textContent = "No assigned batches.";
+    elements.batchPositionLabel.textContent = "—";
+    elements.batchMenuBtn.textContent = "No batches";
+    elements.batchMenuBtn.disabled = true;
+    setStatusBadge("No batch", "text-bg-secondary");
+}
+
+export function renderBatchMenu() {
+    elements.batchMenu.innerHTML = "";
+    elements.batchMenuBtn.disabled = state.batches.length === 0;
+
+    if (state.batches.length === 0) {
+        elements.batchMenuBtn.textContent = "No batches";
+        return;
+    }
+
+    const currentBatch = state.batches.find((batch) => batch.id === state.currentBatchId);
+    elements.batchMenuBtn.textContent = currentBatch
+        ? `${currentBatch.corpus} / ${currentBatch.name}`
+        : "Choose batch";
+
+    for (const batch of state.batches) {
+        const item = document.createElement("li");
+        const button = document.createElement("button");
+
+        button.type = "button";
+        button.className = "dropdown-item batch-menu-item";
+        button.dataset.batchId = String(batch.id);
+
+        if (batch.id === state.currentBatchId) {
+            button.classList.add("active");
+        }
+
+        button.innerHTML = `
+            <span class="d-block fw-semibold">${batch.corpus} / ${batch.name}</span>
+            <span class="d-block small opacity-75">
+                ${batch.completed_count} / ${batch.total_count} complete
+                (${batch.remaining_count} remaining)
+            </span>
+        `;
+
+        item.appendChild(button);
+        elements.batchMenu.appendChild(item);
+    }
+}
+
+export function renderBatchProgress() {
+    const progress = state.currentBatchProgress;
+
+    if (!progress) {
+        elements.progressLabel.textContent = "No batch loaded.";
+        elements.batchPositionLabel.textContent = "—";
+        return;
+    }
+
+    elements.progressLabel.textContent =
+        `${progress.corpus} / ${progress.name}: ` +
+        `${progress.completed_count} / ${progress.total_count} complete ` +
+        `(${progress.remaining_count} remaining)`;
+
+    if (state.currentBatchIndex === null) {
+        elements.batchPositionLabel.textContent = "—";
+    } else {
+        elements.batchPositionLabel.textContent =
+            `Token index ${state.currentBatchIndex + 1} of ${progress.total_count}`;
+    }
+}
+
+export function renderTokenStatus(token) {
+    const latest = token.latest_annotation;
+
+    if (!latest) {
+        setStatusBadge("Unannotated", "text-bg-secondary");
+        return;
+    }
+
+    if (latest.decision === "bad_token") {
+        setStatusBadge("Bad", "text-bg-danger");
+        return;
+    }
+
+    if (latest.decision === "needs_correction") {
+        setStatusBadge("Needs correction", "text-bg-warning");
+        return;
+    }
+
+    setStatusBadge("Annotated", "text-bg-success");
+}
+
+function prefillAnnotationFields(token) {
+    const latest = token.latest_annotation;
+
+    if (latest) {
+        setPanelInputsFromAnnotation(latest);
+        elements.notes.value = latest.notes || "";
+        return;
+    }
+
+    setAllPanelInputs(token.auto_winner_panel);
+    elements.notes.value = "";
+}
+
 export function renderToken(token) {
     const autoWinner = token.auto_winner_panel;
     resetFastTrackStateForToken(token);
@@ -58,8 +159,9 @@ export function renderToken(token) {
 
     elements.metaAutoWinner.textContent = autoWinner;
 
-    setAllPanelInputs(autoWinner);
-    elements.notes.value = "";
+    prefillAnnotationFields(token);
+    renderTokenStatus(token);
+    renderBatchProgress();
 
     elements.spectrogramImage.onload = () => {
         updateSpectrogramAspectRatio();
@@ -67,6 +169,7 @@ export function renderToken(token) {
     };
 
     elements.spectrogramWrapper.classList.add("is-transitioning");
+    elements.spectrogramImage.classList.remove("d-none");
     elements.spectrogramImage.src = token.image_url;
     elements.spectrogramWrapper.classList.remove("d-none");
     elements.emptyState.classList.add("d-none");
@@ -78,4 +181,11 @@ export function renderToken(token) {
         elements.audioPlayer.classList.add("d-none");
         elements.audioPlayer.removeAttribute("src");
     }
+}
+
+export function renderNoTokensRemaining() {
+    clearTokenDisplay("No remaining assigned tokens.");
+    setStatusBadge("Complete", "text-bg-success");
+    setControlsEnabled(false);
+    showToast("All assigned tokens have been annotated.", "success");
 }
