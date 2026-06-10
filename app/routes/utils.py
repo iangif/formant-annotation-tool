@@ -17,9 +17,9 @@ def token_to_read(token: Token) -> TokenRead:
         n_formants=token.n_formants,
         n_candidates=token.n_candidates,
         auto_winner_panel=token.auto_winner_panel,
-        image_url=f"/api/files/tokens/{token.id}/image",
-        audio_url=f"/api/files/tokens/{token.id}/audio" if token.audio_path else None,
-        textgrid_url=f"/api/files/tokens/{token.id}/textgrid" if token.textgrid_path else None,
+        image_url=f"/api/files/tokens/{token.token_id}/image",
+        audio_url=f"/api/files/tokens/{token.token_id}/audio" if token.audio_path else None,
+        textgrid_url=f"/api/files/tokens/{token.token_id}/textgrid" if token.textgrid_path else None,
     )
 
 def token_to_batch_read(token: Token, latest_annotation) -> BatchTokenRead:
