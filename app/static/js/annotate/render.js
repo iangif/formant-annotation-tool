@@ -145,12 +145,12 @@ export function renderToken(token) {
     elements.tokenIdLabel.textContent = token.token_id;
 
     elements.metaWord.textContent = displayValue(token.word);
-    elements.metaVowel.textContent = displayValue(token.vowel_label);
+    elements.metaVowel.textContent = displayValue(token.ipa ?? token.phone);
     elements.metaCorpus.textContent = displayValue(token.corpus);
-    elements.metaSpeaker.textContent = displayValue(token.speaker_id);
+    elements.metaSpeaker.textContent = displayValue(token.speaker);
 
     elements.metaContext.textContent =
-        `${displayValue(token.preceding_phone)} _ ${displayValue(token.following_phone)}`;
+        `${displayValue(token.previous_phone)} _ ${displayValue(token.following_phone)}`;
 
     elements.metaDuration.textContent =
         token.duration_ms === null || token.duration_ms === undefined
