@@ -25,6 +25,9 @@ function clearTokenDisplay(message) {
     elements.metaContext.textContent = "—";
     elements.metaDuration.textContent = "—";
     elements.metaAutoWinner.textContent = "—";
+    elements.metaAlignmentCommentLabel.classList.add("d-none");
+    elements.metaAlignmentComment.classList.add("d-none");
+    elements.metaAlignmentComment.textContent = "—";
 
     elements.audioPlayer.classList.add("d-none");
     elements.audioPlayer.removeAttribute("src");
@@ -158,6 +161,16 @@ export function renderToken(token) {
         : `${token.duration_ms} ms`;
 
     elements.metaAutoWinner.textContent = autoWinner;
+
+    if (token.alignment_comment) {
+        elements.metaAlignmentComment.textContent = token.alignment_comment;
+        elements.metaAlignmentCommentLabel.classList.remove("d-none");
+        elements.metaAlignmentComment.classList.remove("d-none");
+    } else {
+        elements.metaAlignmentComment.textContent = "—";
+        elements.metaAlignmentCommentLabel.classList.add("d-none");
+        elements.metaAlignmentComment.classList.add("d-none");
+    }
 
     prefillAnnotationFields(token);
     renderTokenStatus(token);

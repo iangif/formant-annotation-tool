@@ -1,6 +1,6 @@
 import { elements, annotatorId } from "./dom.js";
 import { state } from "./state.js";
-import { setControlsEnabled } from "./ui.js";
+import { fadeOutSpectrogram, setControlsEnabled } from "./ui.js";
 import { hidePanelHoverOverlay } from "./spectrogram.js";
 import {
     renderBatchMenu,
@@ -103,13 +103,14 @@ export async function markBatchLastOpened(batchId) {
     );
 }
 
-export async function loadTokenAtIndex(index) {
+export async function loadTokenAtIndex(index, direction = 0) {
     if (state.currentBatchId === null) {
         throw new Error("No batch is currently open.");
     }
 
     setControlsEnabled(false);
     hidePanelHoverOverlay();
+    await fadeOutSpectrogram(direction);
 
     elements.emptyState.classList.remove("d-none");
     elements.emptyState.textContent = "Loading token...";
@@ -135,7 +136,7 @@ export async function openBatch(batchId, preferredIndex = null) {
     state.currentBatchProgress = state.batches.find((batch) => batch.id === batchId) || null;
     state.currentToken = null;
     state.currentBatchIndex = null;
-    state.skippedIndices = new Set();
+
 
     await markBatchLastOpened(batchId);
     await loadBatchTokens(batchId);
@@ -196,22 +197,34 @@ export function getAdjacentBatchIndex(direction) {
     return indices[nextPosition];
 }
 
-export function getNextUnfinishedIndexAfterCurrent() {
+export function getNextUnannotatedIndexAfterCurrent() {
     const indices = getSortedBatchIndices();
 
     if (indices.length === 0) {
         return null;
     }
 
-    const currentPosition = Math.max(0, indices.indexOf(state.currentBatchIndex));
-    const afterCurrent = indices.slice(currentPosition + 1);
+    const currentPosition = indices.indexOf(state.currentBatchIndex);
+    const safePosition = currentPosition === -1 ? 0 : currentPosition;
+    const orderedIndices = [
+        ...indices.slice(safePosition + 1),
+        ...indices.slice(0, safePosition + 1),
+    ];
 
-    const nextUnfinished = afterCurrent.find((index) => {
-        const summary = state.currentBatchTokens.find((token) => token.batch_index === index);
-        return summary && !summary.is_annotated && !state.skippedIndices.has(index);
-    });
+    return orderedIndices.find((index) => {
+        const summary = state.currentBatchTokens.find(
+            (token) => token.batch_index === index
+        );
+        return summary && !summary.is_annotated;
+    }) ?? null;
+}
 
-    return nextUnfinished ?? indices[0];
+function directionFromIndexChange(fromIndex, toIndex) {
+    if (fromIndex === null || toIndex === null || fromIndex === toIndex) {
+        return 0;
+    }
+
+    return toIndex > fromIndex ? 1 : -1;
 }
 
 export async function loadAdjacentToken(direction) {
@@ -221,25 +234,19 @@ export async function loadAdjacentToken(direction) {
         return;
     }
 
-    await loadTokenAtIndex(nextIndex);
+    await loadTokenAtIndex(nextIndex, direction);
 }
 
-export async function loadNextUnfinishedOrBeginning() {
-    const nextIndex = getNextUnfinishedIndexAfterCurrent();
+export async function jumpToNextUnannotatedToken() {
+    const nextIndex = getNextUnannotatedIndexAfterCurrent();
 
     if (nextIndex === null) {
-        return;
+        return false;
     }
 
-    await loadTokenAtIndex(nextIndex);
-}
-
-export async function skipCurrentToken() {
-    if (state.currentBatchIndex !== null) {
-        state.skippedIndices.add(state.currentBatchIndex);
-    }
-
-    await loadNextUnfinishedOrBeginning();
+    const direction = directionFromIndexChange(state.currentBatchIndex, nextIndex);
+    await loadTokenAtIndex(nextIndex, direction);
+    return true;
 }
 
 export async function reloadCurrentToken() {

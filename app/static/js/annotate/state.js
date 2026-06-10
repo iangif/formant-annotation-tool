@@ -8,7 +8,10 @@ export const state = {
     currentBatchProgress: null,
     currentBatchTokens: [],
     currentBatchIndex: null,
-    skippedIndices: new Set(),
+
+    autoAdvanceEnabled: true,
+    hotkeysPanelOpen: false,
+    navigationDirection: 0,
 
     displayedImageSource: "original",
     displayedAutoWinnerPanel: null,

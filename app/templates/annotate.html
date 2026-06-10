@@ -53,16 +53,25 @@
                             ></ul>
                         </div>
 
-                        <button id="previous-token-btn" class="btn btn-outline-secondary btn-sm" disabled>
-                            ← Prev
+                        <button id="jump-token-btn" class="btn btn-outline-secondary btn-sm" disabled>
+                            Jump
                         </button>
 
-                        <button id="next-token-btn" class="btn btn-outline-secondary btn-sm" disabled>
-                            Next →
-                        </button>
+                        <div class="form-check form-switch auto-advance-switch mb-0">
+                            <input
+                                id="auto-advance-toggle"
+                                class="form-check-input"
+                                type="checkbox"
+                                role="switch"
+                                checked
+                            >
+                            <label class="form-check-label small" for="auto-advance-toggle">
+                                Auto Advance
+                            </label>
+                        </div>
 
-                        <button id="skip-token-btn" class="btn btn-outline-secondary btn-sm" disabled>
-                            Skip
+                        <button id="hotkeys-btn" class="btn btn-outline-info btn-sm">
+                            Hotkeys
                         </button>
 
                         <button id="open-praat-btn" class="btn btn-outline-primary btn-sm" disabled>
@@ -124,7 +133,12 @@
                                 </div>
 
                                 <div class="d-grid gap-2">
-                                    <button id="generate-fasttrack-btn" class="btn btn-primary btn-sm">
+                                    <button
+                                        id="generate-fasttrack-btn"
+                                        class="btn btn-primary btn-sm"
+                                        disabled
+                                        title="FastTrack reruns are temporarily disabled."
+                                    >
                                         Generate
                                     </button>
 
@@ -235,6 +249,9 @@
 
                             <dt class="col-5">Auto winner</dt>
                             <dd id="meta-auto-winner" class="col-7">—</dd>
+
+                            <dt id="meta-alignment-comment-label" class="col-5 d-none">Alignment comment</dt>
+                            <dd id="meta-alignment-comment" class="col-7 d-none">—</dd>
                         </dl>
 
                         <audio id="audio-player" class="w-100 mt-3 d-none" controls></audio>
@@ -247,17 +264,6 @@
                     </div>
 
                     <div class="card-body">
-                        <p class="small text-muted">
-                            Current hotkeys:
-                            <kbd>←</kbd>/<kbd>→</kbd> browse,
-                            <kbd>S</kbd> skip,
-                            <kbd>Space</kbd> accept auto,
-                            <kbd>Enter</kbd> save F1-F4 fields,
-                            <kbd>B</kbd> bad token,
-                            <kbd>X</kbd> needs correction.
-                            Shift-click a panel to save it immediately.
-                        </p>
-
                         <div class="formant-panel-stack mb-3">
                             <div class="formant-row formant-f4">
                                 <label for="panel-f4" class="form-label mb-0">F4 panel</label>
@@ -310,6 +316,38 @@
             </aside>
         </div>
     </main>
+
+        <div id="hotkeys-backdrop" class="hotkeys-backdrop d-none" aria-hidden="true">
+            <section
+                id="hotkeys-panel"
+                class="hotkeys-panel shadow-lg"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="hotkeys-title"
+            >
+                <button id="close-hotkeys-btn" class="btn-close hotkeys-close" type="button" aria-label="Close hotkeys"></button>
+                <h2 id="hotkeys-title" class="h5 mb-3">Hotkeys</h2>
+                <dl class="row small mb-0 hotkeys-list">
+                    <dt class="col-4"><kbd>←</kbd> / <kbd>→</kbd></dt>
+                    <dd class="col-8">Browse previous or next token without saving.</dd>
+
+                    <dt class="col-4"><kbd>Space</kbd></dt>
+                    <dd class="col-8">Accept the auto winner.</dd>
+
+                    <dt class="col-4"><kbd>Enter</kbd></dt>
+                    <dd class="col-8">Save the current F1-F4 panel fields.</dd>
+
+                    <dt class="col-4"><kbd>B</kbd></dt>
+                    <dd class="col-8">Mark the token as bad.</dd>
+
+                    <dt class="col-4"><kbd>X</kbd></dt>
+                    <dd class="col-8">Mark the token as needing correction.</dd>
+
+                    <dt class="col-4">Shift-click panel</dt>
+                    <dd class="col-8">Set all panel fields to that panel and save immediately.</dd>
+                </dl>
+            </section>
+        </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/static/js/annotate/main.js"></script>

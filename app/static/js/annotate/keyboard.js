@@ -4,8 +4,9 @@ import {
     saveNeedsCorrection,
     saveCurrentPanelFields,
 } from "./actions.js";
-import { loadAdjacentToken, skipCurrentToken } from "./api.js";
-import { showToast } from "./ui.js";
+import { loadAdjacentToken } from "./api.js";
+import { state } from "./state.js";
+import { closeHotkeysPanel, showToast } from "./ui.js";
 
 /**
  * Ignore hotkeys while the user is typing into form fields.
@@ -27,6 +28,14 @@ async function runShortcut(callback) {
 
 export function registerKeyboardShortcuts() {
     document.addEventListener("keydown", (event) => {
+        if (state.hotkeysPanelOpen) {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                closeHotkeysPanel();
+            }
+            return;
+        }
+
         if (event.key === "Enter") {
             event.preventDefault();
             runShortcut(saveCurrentPanelFields);
@@ -46,12 +55,6 @@ export function registerKeyboardShortcuts() {
         if (event.key === "ArrowLeft") {
             event.preventDefault();
             runShortcut(() => loadAdjacentToken(-1));
-            return;
-        }
-
-        if (event.key.toLowerCase() === "s") {
-            event.preventDefault();
-            runShortcut(skipCurrentToken);
             return;
         }
 

@@ -1,14 +1,20 @@
 import { elements } from "./dom.js";
 import { state } from "./state.js";
-import { showToast, setControlsEnabled } from "./ui.js";
+import {
+    closeHotkeysPanel,
+    openHotkeysPanel,
+    persistAutoAdvancePreference,
+    restoreAutoAdvancePreference,
+    showToast,
+    setControlsEnabled,
+} from "./ui.js";
 import {
     initializeBatches,
     openBatch,
     openCurrentTokenInPraat,
     closePraat,
-    loadAdjacentToken,
+    jumpToNextUnannotatedToken,
     reloadCurrentToken,
-    skipCurrentToken,
 } from "./api.js";
 import { registerSpectrogramEvents } from "./spectrogram.js";
 import { registerKeyboardShortcuts } from "./keyboard.js";
@@ -35,27 +41,25 @@ function registerButtonEvents() {
         }
     });
 
-    elements.previousTokenBtn.addEventListener("click", async () => {
+    elements.jumpTokenBtn.addEventListener("click", async () => {
         try {
-            await loadAdjacentToken(-1);
+            await jumpToNextUnannotatedToken();
         } catch (error) {
             showToast(error.message, "danger");
         }
     });
 
-    elements.nextTokenBtn.addEventListener("click", async () => {
-        try {
-            await loadAdjacentToken(1);
-        } catch (error) {
-            showToast(error.message, "danger");
-        }
+    elements.autoAdvanceToggle.addEventListener("change", () => {
+        persistAutoAdvancePreference();
     });
 
-    elements.skipTokenBtn.addEventListener("click", async () => {
-        try {
-            await skipCurrentToken();
-        } catch (error) {
-            showToast(error.message, "danger");
+    elements.hotkeysBtn.addEventListener("click", openHotkeysPanel);
+
+    elements.closeHotkeysBtn.addEventListener("click", closeHotkeysPanel);
+
+    elements.hotkeysBackdrop.addEventListener("click", (event) => {
+        if (event.target === elements.hotkeysBackdrop) {
+            closeHotkeysPanel();
         }
     });
 
@@ -102,6 +106,7 @@ function registerButtonEvents() {
 }
 
 async function main() {
+    restoreAutoAdvancePreference();
     registerButtonEvents();
     registerFastTrackEvents();
     registerPanelInputEvents();

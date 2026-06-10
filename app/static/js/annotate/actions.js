@@ -1,8 +1,8 @@
 import { state } from "./state.js";
-import { setControlsEnabled, showToast, flashSaveConfirmation, fadeOutSpectrogram } from "./ui.js";
+import { setControlsEnabled, showToast, flashSaveConfirmation } from "./ui.js";
 import {
     closePraat,
-    loadNextUnfinishedOrBeginning,
+    jumpToNextUnannotatedToken,
     refreshBatches,
     updateCurrentBatchTokenSummaryFromLoadedToken,
 } from "./api.js";
@@ -54,8 +54,17 @@ export async function savePayload(payload) {
         renderBatchMenu();
         renderBatchProgress();
 
-        await fadeOutSpectrogram();
-        await loadNextUnfinishedOrBeginning();
+        if (state.autoAdvanceEnabled) {
+            const didJump = await jumpToNextUnannotatedToken();
+
+            if (!didJump) {
+                renderBatchProgress();
+                setControlsEnabled(true);
+            }
+        } else {
+            renderBatchProgress();
+            setControlsEnabled(true);
+        }
 
     } catch (error) {
         showToast(error.message, "danger");

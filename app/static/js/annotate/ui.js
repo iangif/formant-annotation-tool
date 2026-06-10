@@ -1,4 +1,5 @@
 import { elements } from "./dom.js";
+import { state } from "./state.js";
 import { sleep } from "./utils.js";
 
 /**
@@ -32,12 +33,30 @@ export function showToast(message, type = "danger") {
 /**
  * Called when spectrogram is fading out.
  */
-export async function fadeOutSpectrogram() {
+export async function fadeOutSpectrogram(direction = 0) {
     if (elements.spectrogramWrapper.classList.contains("d-none")) {
         return;
     }
+
+    setSpectrogramTransitionDirection(direction);
     elements.spectrogramWrapper.classList.add("is-transitioning");
-    await sleep(140);
+    await sleep(120);
+}
+
+/**
+ * Store the direction used by the next spectrogram transition.
+ */
+export function setSpectrogramTransitionDirection(direction = 0) {
+    elements.spectrogramWrapper.classList.remove(
+        "transition-left",
+        "transition-right"
+    );
+
+    if (direction < 0) {
+        elements.spectrogramWrapper.classList.add("transition-left");
+    } else if (direction > 0) {
+        elements.spectrogramWrapper.classList.add("transition-right");
+    }
 }
 
 /**
@@ -45,6 +64,20 @@ export async function fadeOutSpectrogram() {
  */
 export function fadeInSpectrogram() {
     elements.spectrogramWrapper.classList.remove("is-transitioning");
+}
+
+export function openHotkeysPanel() {
+    state.hotkeysPanelOpen = true;
+    elements.hotkeysBackdrop.classList.remove("d-none");
+    elements.hotkeysBackdrop.setAttribute("aria-hidden", "false");
+    elements.closeHotkeysBtn.focus();
+}
+
+export function closeHotkeysPanel() {
+    state.hotkeysPanelOpen = false;
+    elements.hotkeysBackdrop.classList.add("d-none");
+    elements.hotkeysBackdrop.setAttribute("aria-hidden", "true");
+    elements.hotkeysBtn.focus();
 }
 
 /**
@@ -71,20 +104,33 @@ export function setControlsEnabled(enabled) {
         elements.panelF4,
         elements.notes,
         elements.batchMenuBtn,
-        elements.previousTokenBtn,
-        elements.nextTokenBtn,
-        elements.skipTokenBtn,
+        elements.jumpTokenBtn,
+        elements.autoAdvanceToggle,
+        elements.hotkeysBtn,
         elements.reloadTokenBtn,
         elements.openPraatBtn,
         elements.fasttrackMenuBtn,
         elements.fasttrackMinMaxFormant,
         elements.fasttrackMaxMaxFormant,
         elements.fasttrackNFormants,
-        elements.generateFasttrackBtn,
         elements.restoreOriginalBtn,
     ];
 
     for (const control of controls) {
         control.disabled = !enabled;
     }
+}
+
+export function restoreAutoAdvancePreference() {
+    const storedValue = window.localStorage.getItem("formantAutoAdvanceEnabled");
+    state.autoAdvanceEnabled = storedValue === null ? true : storedValue === "true";
+    elements.autoAdvanceToggle.checked = state.autoAdvanceEnabled;
+}
+
+export function persistAutoAdvancePreference() {
+    state.autoAdvanceEnabled = elements.autoAdvanceToggle.checked;
+    window.localStorage.setItem(
+        "formantAutoAdvanceEnabled",
+        String(state.autoAdvanceEnabled)
+    );
 }
