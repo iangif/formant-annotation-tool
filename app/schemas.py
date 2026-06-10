@@ -31,6 +31,7 @@ class TokenRead(BaseModel):
     word: str | None = None
     previous_phone: str | None = None
     following_phone: str | None = None
+    alignment_comment: str | None = None
     effective_phone_begin: float | None = None
     effective_phone_end: float | None = None
     duration_ms: float | None = None
