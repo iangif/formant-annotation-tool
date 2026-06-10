@@ -11,6 +11,7 @@ def token_to_read(token: Token) -> TokenRead:
         word=token.word,
         previous_phone=token.previous_phone,
         following_phone=token.following_phone,
+        alignment_comment=token.alignment_comment,
         duration_ms=token.duration_ms,
         min_max_formant=token.min_max_formant,
         max_max_formant=token.max_max_formant,
