@@ -20,7 +20,7 @@ from app.database import Base, SessionLocal, engine
 from app.models import Assignment, Batch, Corpus, Token
 from scripts.utils import empty_to_none
 
-def to_float(value: str | None) -> float | None:
+def to_float(value: str | int | float | None) -> float | None:
     value = empty_to_none(value)
     return None if value is None else float(value)
 
@@ -146,7 +146,6 @@ def token_values(
     image_path = find_local_file(batch_root / "images", file_stem, ".png")
 
     return {
-        "id": token_id,
         "token_id": token_id,
         "corpus_id": corpus.id,
         "batch_id": batch.id,
@@ -187,7 +186,7 @@ def token_values(
     }
 
 def upsert_token(db, values: dict) -> None:
-    token = db.get(Token, values["id"])
+    token = db.get(Token, values["token_id"])
     if token is None:
         db.add(Token(**values))
         return

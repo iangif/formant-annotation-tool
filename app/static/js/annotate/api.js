@@ -256,7 +256,7 @@ export async function openCurrentTokenInPraat() {
     }
 
     return await fetchJson(
-        `/api/tokens/${encodeURIComponent(state.currentToken.id)}/open-praat`,
+        `/api/tokens/${encodeURIComponent(state.currentToken.token_id)}/open-praat`,
         { method: "POST" },
         "Failed to open token in Praat."
     );

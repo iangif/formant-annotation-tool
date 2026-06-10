@@ -59,7 +59,7 @@ def is_token_assigned(db: Session, token_id: str, annotator_id: str) -> bool:
     stmt = (
         select(Assignment.id)
         .join(Token, Token.batch_id == Assignment.batch_id)
-        .where(Token.id == token_id)
+        .where(Token.token_id == token_id)
         .where(Assignment.annotator_id == annotator_id)
         .limit(1)
     )
@@ -83,19 +83,19 @@ def get_assigned_batches_with_progress(
 
     for batch in batches:
         total_count = db.scalar(
-            select(func.count(Token.id)).where(Token.batch_id == batch.id)
+            select(func.count(Token.token_id)).where(Token.batch_id == batch.id)
         ) or 0
 
         completed_count = db.scalar(
             select(func.count(distinct(Annotation.token_id)))
-            .join(Token, Token.id == Annotation.token_id)
+            .join(Token, Token.token_id == Annotation.token_id)
             .where(Token.batch_id == batch.id)
             .where(Annotation.annotator_id == annotator_id)
         ) or 0
 
         annotated_exists = (
             select(Annotation.id)
-            .where(Annotation.token_id == Token.id)
+            .where(Annotation.token_id == Token.token_id)
             .where(Annotation.annotator_id == annotator_id)
             .exists()
         )
@@ -139,11 +139,10 @@ def get_batch_token_summaries(
     summaries: list[dict] = []
 
     for token in tokens:
-        latest = latest_annotation_for_token(db, token.id, annotator_id)
+        latest = latest_annotation_for_token(db, token.token_id, annotator_id)
 
         summaries.append(
             {
-                "id": token.id,
                 "token_id": token.token_id,
                 "batch_id": token.batch_id,
                 "batch_index": token.batch_index,
@@ -256,7 +255,7 @@ def get_progress(db: Session, annotator_id: str) -> dict:
     """Returns assignment and completion counts for an annotator."""
 
     assigned_token_count = db.scalar(
-        select(func.count(Token.id))
+        select(func.count(Token.token_id))
         .join(Assignment, Assignment.batch_id == Token.batch_id)
         .where(Assignment.annotator_id == annotator_id)
     ) or 0

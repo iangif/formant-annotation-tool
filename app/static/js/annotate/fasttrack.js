@@ -71,7 +71,7 @@ export async function generateFastTrackAlternative() {
 
     try {
         const response = await fetch(
-            `/api/tokens/${encodeURIComponent(state.currentToken.id)}/fasttrack`,
+            `/api/tokens/${encodeURIComponent(state.currentToken.token_id)}/fasttrack`,
             {
                 method: "POST",
                 headers: {

@@ -136,8 +136,8 @@ def generate_fasttrack_alternative(
 
     cache_key = get_fasttrack_cache_key(params)
 
-    temp_image_path = get_temp_fasttrack_image_path(token.id, cache_key)
-    temp_pickle_path = get_temp_fasttrack_pickle_path(token.id, cache_key)
+    temp_image_path = get_temp_fasttrack_image_path(token.token_id, cache_key)
+    temp_pickle_path = get_temp_fasttrack_pickle_path(token.token_id, cache_key)
 
     if temp_image_path.exists() and temp_pickle_path.exists():
         # Regenerate winner metadata cheaply from the cached pickle when possile.
@@ -148,7 +148,7 @@ def generate_fasttrack_alternative(
         return FastTrackGeneratedFiles(
             image_path=temp_image_path,
             pickle_path=temp_pickle_path,
-            image_url=f"/api/tokens/{token.id}/fasttrack-image?cache_key={cache_key}",
+            image_url=f"/api/tokens/{token.token_id}/fasttrack-image?cache_key={cache_key}",
             cache_key=cache_key,
             auto_winner_panel=int(candidates.winner_idx),
         )
@@ -197,7 +197,7 @@ def generate_fasttrack_alternative(
 
     except Exception as exc:
         raise FastTrackGenerationError(
-            f"FastTrackPy failed for token {token.id}: {exc}"
+            f"FastTrackPy failed for token {token.token_id}: {exc}"
         ) from exc
     
     if not temp_image_path.exists():
@@ -213,7 +213,7 @@ def generate_fasttrack_alternative(
     return FastTrackGeneratedFiles(
         image_path=temp_image_path,
         pickle_path=temp_pickle_path,
-        image_url=f"/api/tokens/{token.id}/fasttrack-image?cache_key={cache_key}",
+        image_url=f"/api/tokens/{token.token_id}/fasttrack-image?cache_key={cache_key}",
         cache_key=cache_key,
         auto_winner_panel=auto_winner_panel,
     )
@@ -229,18 +229,18 @@ def promote_fasttrack_alternative(
     After promotion, the temporary files are deleted.
     """
 
-    temp_image_path = get_temp_fasttrack_image_path(token.id, cache_key)
-    temp_pickle_path = get_temp_fasttrack_pickle_path(token.id, cache_key)
+    temp_image_path = get_temp_fasttrack_image_path(token.token_id, cache_key)
+    temp_pickle_path = get_temp_fasttrack_pickle_path(token.token_id, cache_key)
 
     if not temp_image_path.exists():
         raise FastTrackInputFileError(
-            f"No temporary FastTrack spectrogram exists for token {token.id}."
+            f"No temporary FastTrack spectrogram exists for token {token.token_id}."
         )
 
     committed_image_path = (
         _resolve_project_path(token.image_path)
         if token.image_path is not None
-        else STATIC_DIR / "images" / f"{token.id}.png"
+        else STATIC_DIR / "images" / f"{token.token_id}.png"
     )
 
     committed_image_path.parent.mkdir(parents=True, exist_ok=True)
@@ -249,7 +249,7 @@ def promote_fasttrack_alternative(
     committed_pickle_path = (
         _resolve_project_path(token.candidates_pickle_path)
         if token.candidates_pickle_path is not None
-        else PROJECT_ROOT / "data" / "pickles" / f"{token.id}.pkl"
+        else PROJECT_ROOT / "data" / "pickles" / f"{token.token_id}.pkl"
     )
 
     committed_pickle_path.parent.mkdir(parents=True, exist_ok=True)

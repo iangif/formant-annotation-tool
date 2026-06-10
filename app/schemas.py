@@ -23,13 +23,16 @@ class TokenRead(BaseModel):
     Note: image_url and audio_url are browser URLs, not filesystem paths
     """
 
-    id: str
+    token_id: str
     corpus: str
-    speaker_id: str | None = None
-    vowel_label: str
+    speaker: str | None = None
+    phone: str
+    ipa: str | None = None
     word: str | None = None
-    preceding_phone: str | None = None
+    previous_phone: str | None = None
     following_phone: str | None = None
+    effective_phone_begin: float | None = None
+    effective_phone_end: float | None = None
     duration_ms: float | None = None
 
     min_max_formant: float | None = None
@@ -50,7 +53,6 @@ class TokenSummaryRead(BaseModel):
     List of tokens for a batch overview.
     """
 
-    id: str
     token_id: str
     batch_id: int
     batch_index: int

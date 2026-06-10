@@ -44,8 +44,7 @@ class Batch(Base):
 class Token(Base):
     __tablename__ = "tokens"
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
-    token_id: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    token_id: Mapped[str] = mapped_column(String, primary_key=True)
 
     corpus_id: Mapped[int] = mapped_column(ForeignKey("corpora.id"), index=True, nullable=False)
     batch_id: Mapped[int] = mapped_column(ForeignKey("batches.id"), index=True, nullable=False)
@@ -105,22 +104,19 @@ class Token(Base):
     batch: Mapped[Batch] = relationship(back_populates="tokens")
 
     @property
-    def speaker_id(self) -> str | None:
-        return self.speaker
+    def effective_phone_begin(self) -> float | None:
+        return self.phone_begin_corrected if self.phone_begin_corrected is not None else self.phone_begin
 
     @property
-    def vowel_label(self) -> str | None:
-        return self.phone
-
-    @property
-    def preceding_phone(self) -> str | None:
-        return self.previous_phone
+    def effective_phone_end(self) -> float | None:
+        return self.phone_end_corrected if self.phone_end_corrected is not None else self.phone_end
 
     @property
     def duration_ms(self) -> float | None:
-        if self.phone_begin_corrected is None or self.phone_end_corrected is None:
+        if self.effective_phone_begin is None or self.effective_phone_end is None:
             return None
-        return round((self.phone_end_corrected - self.phone_begin_corrected) * 1000, 2)
+
+        return round((self.effective_phone_end - self.effective_phone_begin) * 1000, 2)
 
 """
 Annotation rules:
@@ -141,7 +137,7 @@ class Annotation(Base):
     __tablename__ = "annotations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    token_id: Mapped[str] = mapped_column(ForeignKey("tokens.id"), index=True, nullable=False)
+    token_id: Mapped[str] = mapped_column(ForeignKey("tokens.token_id"), index=True, nullable=False)
 
     annotator_id: Mapped[str] = mapped_column(String, index=True)
     decision: Mapped[AnnotationDecision] = mapped_column(Enum(AnnotationDecision), nullable=False)

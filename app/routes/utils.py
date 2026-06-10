@@ -3,12 +3,13 @@ from app.schemas import AnnotationRead, BatchTokenRead, TokenRead
 
 def token_to_read(token: Token) -> TokenRead:
     return TokenRead(
-        id=token.id,
+        token_id=token.token_id,
         corpus=token.corpus.name,
-        speaker_id=token.speaker_id,
-        vowel_label=token.vowel_label,
+        speaker=token.speaker,
+        phone=token.phone,
+        ipa=token.ipa,
         word=token.word,
-        preceding_phone=token.preceding_phone,
+        previous_phone=token.previous_phone,
         following_phone=token.following_phone,
         duration_ms=token.duration_ms,
         min_max_formant=token.min_max_formant,

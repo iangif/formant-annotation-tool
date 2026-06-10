@@ -16,7 +16,7 @@ export function buildBasePayload(decision) {
     }
 
     const payload = {
-        token_id: state.currentToken.id,
+        token_id: state.currentToken.token_id,
         annotator_id: annotatorId,
         decision: decision,
         notes: elements.notes.value.trim() || null,

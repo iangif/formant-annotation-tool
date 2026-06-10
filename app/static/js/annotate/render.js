@@ -142,7 +142,7 @@ export function renderToken(token) {
     resetFastTrackStateForToken(token);
     state.displayedAutoWinnerPanel = token.auto_winner_panel;
 
-    elements.tokenIdLabel.textContent = token.id;
+    elements.tokenIdLabel.textContent = token.token_id;
 
     elements.metaWord.textContent = displayValue(token.word);
     elements.metaVowel.textContent = displayValue(token.vowel_label);

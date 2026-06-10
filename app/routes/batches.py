@@ -70,7 +70,7 @@ def get_batch_token_by_index(
             detail=f"No token found for batch {batch_id} at index {index}.",
         )
 
-    latest = crud.latest_annotation_for_token(db, token.id, annotator_id)
+    latest = crud.latest_annotation_for_token(db, token.token_id, annotator_id)
     return token_to_batch_read(token, latest)
 
 @router.post("/{batch_id}/last-opened")
