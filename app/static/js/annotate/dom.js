@@ -5,6 +5,7 @@ export const annotatorId = document
 
 export const elements = {
     progressLabel: document.getElementById("progress-label"),
+    batchPositionLabel: document.getElementById("batch-position-label"),
     toastContainer: document.getElementById("toast-container"),
     toastTemplate: document.getElementById("toast-template"),
 
@@ -18,6 +19,7 @@ export const elements = {
     panelHoverLabel: document.getElementById("panel-hover-label"),
 
     tokenIdLabel: document.getElementById("token-id-label"),
+    tokenStatusBadge: document.getElementById("token-status-badge"),
 
     metaWord: document.getElementById("meta-word"),
     metaVowel: document.getElementById("meta-vowel"),
@@ -26,6 +28,8 @@ export const elements = {
     metaContext: document.getElementById("meta-context"),
     metaDuration: document.getElementById("meta-duration"),
     metaAutoWinner: document.getElementById("meta-auto-winner"),
+    metaAlignmentCommentLabel: document.getElementById("meta-alignment-comment-label"),
+    metaAlignmentComment: document.getElementById("meta-alignment-comment"),
 
     audioPlayer: document.getElementById("audio-player"),
 
@@ -35,6 +39,16 @@ export const elements = {
     panelF4: document.getElementById("panel-f4"),
 
     notes: document.getElementById("notes"),
+
+    batchMenuBtn: document.getElementById("batch-menu-btn"),
+    batchMenu: document.getElementById("batch-menu"),
+    jumpTokenBtn: document.getElementById("jump-token-btn"),
+    batchIndexInput: document.getElementById("batch-index-input"),
+    autoAdvanceToggle: document.getElementById("auto-advance-toggle"),
+    hotkeysBtn: document.getElementById("hotkeys-btn"),
+    hotkeysBackdrop: document.getElementById("hotkeys-backdrop"),
+    hotkeysPanel: document.getElementById("hotkeys-panel"),
+    closeHotkeysBtn: document.getElementById("close-hotkeys-btn"),
 
     reloadTokenBtn: document.getElementById("reload-token-btn"),
     openPraatBtn: document.getElementById("open-praat-btn"),

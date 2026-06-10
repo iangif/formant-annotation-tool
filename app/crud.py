@@ -1,62 +1,208 @@
 """
-Defines database operations.
+Defines database operations for tokens, batches, assignments, and annotations.
 
 This module is FastAPI-independent and can be used
 from API routes, scripts, tests, and future command-line utilities.
 """
 
-from sqlalchemy import func, select, exists
+from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
-from app.models import Annotation, AnnotationDecision, Token, TokenAssignment
+from app.models import Annotation, AnnotationDecision, Assignment, Batch, Token
 from app.schemas import AnnotationCreate
 
-def get_next_token(db: Session, annotator_id: str) -> Token | None:
-    """
-    Returns the next token assigned to annotator_id that has not already been annotated by annotator_id.
-    """
+def get_token_by_id(db: Session, token_id: str) -> Token | None:
+    """Returns a token by its id."""
+    return db.get(Token, token_id)
 
-    # Condition whether annotation exists for this token by this annotator
-    already_annotated = (
-        select(Annotation.id)
-        .where(Annotation.token_id == Token.id)
-        .where(Annotation.annotator_id == annotator_id)
-        .exists()
-    )
-
-    # Search Token table for tokens not annotated by annotator
+def latest_annotation_for_token(
+    db: Session,
+    token_id: str,
+    annotator_id: str,
+) -> Annotation | None:
+    """Returns the most recent annotation for a token by a specific annotator."""
     stmt = (
-        select(Token)
-        .join(TokenAssignment, TokenAssignment.token_id == Token.id)
-        .where(TokenAssignment.annotator_id == annotator_id)
-        .where(~already_annotated)
-        .order_by(Token.id)
+        select(Annotation)
+        .where(Annotation.token_id == token_id)
+        .where(Annotation.annotator_id == annotator_id)
+        .order_by(Annotation.created_at.desc(), Annotation.id.desc())
         .limit(1)
     )
-
     return db.scalar(stmt)
 
-def get_token_by_id(db: Session, token_id: str) -> Token | None:
-    """
-    Returns a token by ID, or None if it does not exist.
-    """
-    
-    stmt = select(Token).where(Token.id == token_id)
-    return db.scalar(stmt)
+def annotation_history_for_token(
+    db: Session,
+    token_id: str,
+    annotator_id: str,
+) -> list[Annotation]:
+    """Returns all annotations for a token by an annotator, newest first."""
+    stmt = (
+        select(Annotation)
+        .where(Annotation.token_id == token_id)
+        .where(Annotation.annotator_id == annotator_id)
+        .order_by(Annotation.created_at.desc(), Annotation.id.desc())
+    )
+    return list(db.scalars(stmt))
+
+def is_batch_assigned(db: Session, batch_id: int, annotator_id: str) -> bool:
+    """Checks whether a batch is assigned to a given annotator."""
+    stmt = (
+        select(Assignment.id)
+        .where(Assignment.batch_id == batch_id)
+        .where(Assignment.annotator_id == annotator_id)
+        .limit(1)
+    )
+    return db.scalar(stmt) is not None
 
 def is_token_assigned(db: Session, token_id: str, annotator_id: str) -> bool:
-    """
-    Returns True if the token is assigned to this annotator.
-    """
-
+    """Checks whether a token belongs to a batch assigned to a given annotator."""
     stmt = (
-        select(TokenAssignment.id)
-        .where(TokenAssignment.token_id == token_id)
-        .where(TokenAssignment.annotator_id == annotator_id)
+        select(Assignment.id)
+        .join(Token, Token.batch_id == Assignment.batch_id)
+        .where(Token.token_id == token_id)
+        .where(Assignment.annotator_id == annotator_id)
         .limit(1)
     )
-
     return db.scalar(stmt) is not None
+
+def get_assigned_batches_with_progress(
+    db: Session,
+    annotator_id: str,
+    last_opened_batch_id: int | None = None,
+) -> list[dict]:
+    """Returns assigned batches along with annotation progress statistics."""
+
+    batches = db.scalars(
+        select(Batch)
+        .join(Assignment, Assignment.batch_id == Batch.id)
+        .where(Assignment.annotator_id == annotator_id)
+        .order_by(Batch.id)
+    ).all()
+
+    results: list[dict] = []
+
+    for batch in batches:
+        total_count = db.scalar(
+            select(func.count(Token.token_id)).where(Token.batch_id == batch.id)
+        ) or 0
+
+        completed_count = db.scalar(
+            select(func.count(distinct(Annotation.token_id)))
+            .join(Token, Token.token_id == Annotation.token_id)
+            .where(Token.batch_id == batch.id)
+            .where(Annotation.annotator_id == annotator_id)
+        ) or 0
+
+        annotated_exists = (
+            select(Annotation.id)
+            .where(Annotation.token_id == Token.token_id)
+            .where(Annotation.annotator_id == annotator_id)
+            .exists()
+        )
+
+        first_unfinished_index = db.scalar(
+            select(Token.batch_index)
+            .where(Token.batch_id == batch.id)
+            .where(~annotated_exists)
+            .order_by(Token.batch_index)
+            .limit(1)
+        )
+
+        results.append(
+            {
+                "id": batch.id,
+                "corpus": batch.corpus.name,
+                "name": batch.name,
+                "completed_count": completed_count,
+                "total_count": total_count,
+                "remaining_count": total_count - completed_count,
+                "first_unfinished_index": first_unfinished_index,
+                "is_last_opened": batch.id == last_opened_batch_id,
+            }
+        )
+    
+    return results
+
+def get_batch_token_summaries(
+    db: Session,
+    batch_id: int,
+    annotator_id: str,
+) -> list[dict]:
+    """Returns token metadata and annotation status for a batch."""
+
+    tokens = db.scalars(
+        select(Token)
+        .where(Token.batch_id == batch_id)
+        .order_by(Token.batch_index)
+    ).all()
+
+    summaries: list[dict] = []
+
+    for token in tokens:
+        latest = latest_annotation_for_token(db, token.token_id, annotator_id)
+
+        summaries.append(
+            {
+                "token_id": token.token_id,
+                "batch_id": token.batch_id,
+                "batch_index": token.batch_index,
+                "file_stem": token.file_stem,
+                "phone": token.phone,
+                "ipa": token.ipa,
+                "word": token.word,
+                "speaker": token.speaker,
+                "is_annotated": latest is not None,
+                "latest_decision": latest.decision if latest else None,
+            }
+        )
+
+    return summaries
+
+def get_batch_token_at_index(
+    db: Session,
+    batch_id: int,
+    batch_index: int,
+) -> Token | None:
+    """Returns the token at a specific index within a batch."""
+
+    stmt = (
+        select(Token)
+        .where(Token.batch_id == batch_id)
+        .where(Token.batch_index == batch_index)
+        .limit(1)
+    )
+    return db.scalar(stmt)
+
+
+def annotations_are_identical_except_identity(
+    existing: Annotation,
+    incoming: dict,
+) -> bool:
+    """
+    Return True when an incoming annotation duplicates the latest row.
+
+    Annotation history remains append-only for real edits, but exact
+    resubmissions are ignored so repeated saves do not create noise.
+    Identity/timestamp fields are intentionally ignored.
+    """
+
+    for column in Annotation.__table__.columns:
+        if column.name in {"id", "created_at"}:
+            continue
+
+        existing_value = getattr(existing, column.name)
+        incoming_value = incoming.get(column.name)
+
+        if isinstance(existing_value, AnnotationDecision):
+            existing_value = existing_value.value
+
+        if isinstance(incoming_value, AnnotationDecision):
+            incoming_value = incoming_value.value
+
+        if existing_value != incoming_value:
+            return False
+
+    return True
 
 def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotation:
     """
@@ -74,13 +220,16 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
     """
 
     token = get_token_by_id(db, annotation_in.token_id)
-    
+
     if token is None:
         raise ValueError(f"Unknown token_id: {annotation_in.token_id}")
 
-    if not is_token_assigned(db=db, token_id=annotation_in.token_id, annotator_id=annotation_in.annotator_id):
-        raise ValueError(f"Token {annotation_in.token_id} is not assigned to annotator {annotation_in.annotator_id}")
-    
+    if not is_token_assigned(db, annotation_in.token_id, annotation_in.annotator_id):
+        raise ValueError(
+            f"Token {annotation_in.token_id} is not assigned to annotator "
+            f"{annotation_in.annotator_id}"
+        )
+
     data = annotation_in.model_dump(
         exclude={
             "image_source",
@@ -89,6 +238,9 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
             "displayed_auto_winner_panel",
         }
     )
+
+    data.setdefault("annotation_version", "v1")
+
     winner = token.auto_winner_panel
 
     if annotation_in.decision == AnnotationDecision.accept_auto:
@@ -110,65 +262,54 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
         data["panel_f4"] = panel
 
     elif annotation_in.decision == AnnotationDecision.complex:
-        panels = [
-            annotation_in.panel_f1,
-            annotation_in.panel_f2,
-            annotation_in.panel_f3,
-            annotation_in.panel_f4,
-        ]
-        
+        panels = [annotation_in.panel_f1, annotation_in.panel_f2, annotation_in.panel_f3, annotation_in.panel_f4]
+
         if all(panel is None for panel in panels):
-            raise ValueError(
-                "At least one F1-F4 panel value is required. "
-            )
+            raise ValueError("At least one F1-F4 panel value is required.")
 
         if all(panel == winner for panel in panels):
-            raise ValueError(
-                "complex cannot duplicate auto_accept. "
-                "Use auto_accept instead."
-            )
+            raise ValueError("complex cannot duplicate accept_auto. Use accept_auto instead.")
 
         non_null_panels = [panel for panel in panels if panel is not None]
 
-        if (len(non_null_panels) == 4 and len(set(non_null_panels)) == 1):
-            raise ValueError(
-                "complex with four identical panels should be select_panel instead."
-            )
+        if len(non_null_panels) == 4 and len(set(non_null_panels)) == 1:
+            raise ValueError("complex with four identical panels should be select_panel instead.")
 
         data["selected_panel"] = None
 
-    annotation = Annotation(**data)
+    latest = latest_annotation_for_token(
+        db=db,
+        token_id=annotation_in.token_id,
+        annotator_id=annotation_in.annotator_id,
+    )
 
+    if latest is not None and annotations_are_identical_except_identity(latest, data):
+        return latest
+
+    annotation = Annotation(**data)
     db.add(annotation)
-    # Open question: how to handle if token is already annotated?
-    # Currently, a new annotation is added with a different date.
     db.commit()
     db.refresh(annotation)
 
     return annotation
 
 def get_progress(db: Session, annotator_id: str) -> dict:
-    """
-    Return simple progress information for one annotator.
-    """
-    assigned_total_stmt = (
-        select(func.count())
-        .select_from(TokenAssignment)
-        .where(TokenAssignment.annotator_id == annotator_id)
-    )
+    """Returns assignment and completion counts for an annotator."""
 
-    annotated_total_stmt = (
-        select(func.count())
-        .select_from(Annotation)
+    assigned_token_count = db.scalar(
+        select(func.count(Token.token_id))
+        .join(Assignment, Assignment.batch_id == Token.batch_id)
+        .where(Assignment.annotator_id == annotator_id)
+    ) or 0
+
+    annotated_token_count = db.scalar(
+        select(func.count(distinct(Annotation.token_id)))
         .where(Annotation.annotator_id == annotator_id)
-    )
-
-    assigned_total = db.scalar(assigned_total_stmt) or 0
-    annotated_total = db.scalar(annotated_total_stmt) or 0
+    ) or 0
 
     return {
         "annotator_id": annotator_id,
-        "assigned_total": assigned_total,
-        "annotated_total": annotated_total,
-        "remaining_total": assigned_total - annotated_total,
+        "assigned_total": assigned_token_count,
+        "annotated_total": annotated_token_count,
+        "remaining_total": assigned_token_count - annotated_token_count,
     }

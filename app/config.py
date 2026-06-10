@@ -19,6 +19,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DATA_DIR = PROJECT_ROOT / "data"
+CORPORA_DIR = DATA_DIR / "corpora"
+SYNC_MANIFEST_PATH = DATA_DIR / "sync_manifest.json"
+
 ANNOTATOR_ID = os.getenv("ANNOTATOR_ID", "unknown")
 
 FORMANT_DB_URL = os.getenv(
@@ -26,10 +31,11 @@ FORMANT_DB_URL = os.getenv(
     f"sqlite:///./data/{ANNOTATOR_ID}.sqlite",
 )
 
-# Optional path to Praat executable.
-PRAAT_PATH = os.getenv("PRAAT_PATH") or None
+REMOTE_USER_HOST = os.getenv("REMOTE_USER_HOST", "")
+REMOTE_PROJECT_ROOT = Path(os.getenv("REMOTE_PROJECT_ROOT", "/projects/xling-measures"))
+REMOTE_CONFIG_DIR = f"{REMOTE_PROJECT_ROOT}/formants/config"
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PRAAT_PATH = os.getenv("PRAAT_PATH") or None
 
 STATIC_DIR = PROJECT_ROOT / "app" / "static"
 TEMPLATES_DIR = PROJECT_ROOT / "app" / "templates"

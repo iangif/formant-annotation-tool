@@ -131,8 +131,8 @@ kbd {
 }
 
 .spectrogram-wrapper.is-transitioning {
-    opacity: 0;
-    transform: translateY(4px);
+    opacity: 0.72;
+    transform: translateY(2px);
 }
 
 .spectrogram-wrapper.save-confirmed {
@@ -199,3 +199,105 @@ kbd {
 .formant-f2 { border-left-color: #D55E00; }
 .formant-f3 { border-left-color: #009E73; }
 .formant-f4 { border-left-color: #F0E442; }
+
+.batch-dropdown {
+    min-width: 260px;
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.batch-menu-item.active .opacity-75 {
+    opacity: 0.9 !important;
+}
+
+#batch-position-label {
+    font-variant-numeric: tabular-nums;
+}
+
+.auto-advance-control {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+}
+
+.batch-index-input {
+    width: 84px;
+}
+
+.spectrogram-wrapper.transition-left.is-transitioning {
+    opacity: 0.72;
+    transform: translateX(12px);
+}
+
+.spectrogram-wrapper.transition-right.is-transitioning {
+    opacity: 0.72;
+    transform: translateX(-12px);
+}
+
+.spectrogram-wrapper.transition-left:not(.is-transitioning) {
+    animation: spectrogram-enter-from-left 110ms ease-out;
+}
+
+.spectrogram-wrapper.transition-right:not(.is-transitioning) {
+    animation: spectrogram-enter-from-right 110ms ease-out;
+}
+
+@keyframes spectrogram-enter-from-left {
+    from {
+        opacity: 0.72;
+        transform: translateX(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes spectrogram-enter-from-right {
+    from {
+        opacity: 0.72;
+        transform: translateX(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.hotkeys-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1070;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.36);
+}
+
+.hotkeys-panel {
+    position: relative;
+    width: min(520px, 100%);
+    max-height: min(640px, 90dvh);
+    overflow-y: auto;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    background: #fff;
+}
+
+.hotkeys-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+}
+
+.hotkeys-list dt,
+.hotkeys-list dd {
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+}
+
+#meta-alignment-comment {
+    white-space: pre-wrap;
+}

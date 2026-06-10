@@ -13,3 +13,8 @@ wheels/
 .env
 
 data/*.sqlite
+data/corpora*
+data/sync_manifest.json
+data/local_settings.json
+
+scripts/zip_project.sh

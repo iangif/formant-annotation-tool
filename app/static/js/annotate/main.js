@@ -1,7 +1,22 @@
 import { elements } from "./dom.js";
 import { state } from "./state.js";
-import { showToast, setControlsEnabled } from "./ui.js";
-import { loadNextToken, openCurrentTokenInPraat, closePraat } from "./api.js";
+import {
+    closeHotkeysPanel,
+    openHotkeysPanel,
+    persistAutoAdvancePreference,
+    restoreAutoAdvancePreference,
+    showToast,
+    setControlsEnabled,
+} from "./ui.js";
+import {
+    initializeBatches,
+    openBatch,
+    openCurrentTokenInPraat,
+    closePraat,
+    jumpToNextUnannotatedToken,
+    reloadCurrentToken,
+    loadTokenFromBatchIndexInput,
+} from "./api.js";
 import { registerSpectrogramEvents } from "./spectrogram.js";
 import { registerKeyboardShortcuts } from "./keyboard.js";
 import {
@@ -12,9 +27,61 @@ import { registerFastTrackEvents } from "./fasttrack.js";
 import { registerPanelInputEvents } from "./panels.js";
 
 function registerButtonEvents() {
+    elements.batchMenu.addEventListener("click", async (event) => {
+        const button = event.target.closest("[data-batch-id]");
+
+        if (!button) {
+            return;
+        }
+
+        try {
+            await openBatch(Number.parseInt(button.dataset.batchId, 10));
+        } catch (error) {
+            showToast(error.message, "danger");
+            setControlsEnabled(false);
+        }
+    });
+
+    elements.jumpTokenBtn.addEventListener("click", async () => {
+        try {
+            await jumpToNextUnannotatedToken();
+        } catch (error) {
+            showToast(error.message, "danger");
+        }
+    });
+
+    elements.batchIndexInput.addEventListener("keydown", async (event) => {
+        if (event.key !== "Enter") {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        try {
+            await loadTokenFromBatchIndexInput();
+        } catch (error) {
+            showToast(error.message, "danger");
+        }
+    });
+
+    elements.autoAdvanceToggle.addEventListener("change", () => {
+        persistAutoAdvancePreference();
+    });
+
+    elements.hotkeysBtn.addEventListener("click", openHotkeysPanel);
+
+    elements.closeHotkeysBtn.addEventListener("click", closeHotkeysPanel);
+
+    elements.hotkeysBackdrop.addEventListener("click", (event) => {
+        if (event.target === elements.hotkeysBackdrop) {
+            closeHotkeysPanel();
+        }
+    });
+
     elements.reloadTokenBtn.addEventListener("click", async () => {
         try {
-            await loadNextToken();
+            await reloadCurrentToken();
         } catch (error) {
             showToast(error.message, "danger");
         }
@@ -55,6 +122,7 @@ function registerButtonEvents() {
 }
 
 async function main() {
+    restoreAutoAdvancePreference();
     registerButtonEvents();
     registerFastTrackEvents();
     registerPanelInputEvents();
@@ -65,7 +133,7 @@ async function main() {
     registerResizeHandle();
 
     try {
-        await loadNextToken();
+        await initializeBatches();
     } catch (error) {
         showToast(error.message, "danger");
         setControlsEnabled(false);

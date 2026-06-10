@@ -421,6 +421,7 @@ dependencies = [
     { name = "fasttrackpy" },
     { name = "jinja2" },
     { name = "python-dotenv" },
+    { name = "pyyaml" },
     { name = "sqlalchemy" },
 ]
 
@@ -430,6 +431,7 @@ requires-dist = [
     { name = "fasttrackpy", git = "https://github.com/massimolipari/fasttrackpy.git?rev=e776cd2af01835fc935a8316b0d5c231961efdae" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "sqlalchemy", specifier = ">=2.0.49" },
 ]
 
