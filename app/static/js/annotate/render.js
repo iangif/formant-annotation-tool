@@ -127,7 +127,7 @@ export function renderTokenStatus(token) {
     setStatusBadge("Annotated", "text-bg-success");
 }
 
-function prefillAnnotationFields(token) {
+export function prefillAnnotationFields(token) {
     const latest = token.latest_annotation;
 
     if (latest) {
