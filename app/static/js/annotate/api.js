@@ -112,10 +112,6 @@ export async function loadTokenAtIndex(index, direction = 0) {
     hidePanelHoverOverlay();
     await fadeOutSpectrogram(direction);
 
-    elements.emptyState.classList.remove("d-none");
-    elements.emptyState.textContent = "Loading token...";
-    elements.spectrogramWrapper.classList.add("d-none");
-
     const token = await fetchJson(
         `/api/batches/${encodeURIComponent(state.currentBatchId)}/tokens/${encodeURIComponent(index)}?annotator_id=${encodeURIComponent(annotatorId)}`,
         {},
@@ -247,6 +243,29 @@ export async function jumpToNextUnannotatedToken() {
     const direction = directionFromIndexChange(state.currentBatchIndex, nextIndex);
     await loadTokenAtIndex(nextIndex, direction);
     return true;
+}
+
+export async function loadTokenFromBatchIndexInput() {
+    const rawValue = elements.batchIndexInput.value.trim();
+    const requestedIndex = Number.parseInt(rawValue, 10);
+
+    if (!Number.isInteger(requestedIndex)) {
+        throw new Error("Enter a valid token index.");
+    }
+
+    // UI uses 1-based token positions; backend batch_index is 0-based.
+    const batchIndex = requestedIndex - 1;
+
+    const exists = state.currentBatchTokens.some(
+        (token) => token.batch_index === batchIndex
+    );
+
+    if (!exists) {
+        throw new Error(`Token index ${requestedIndex} is not in this batch.`);
+    }
+
+    const direction = batchIndex > state.currentBatchIndex ? 1 : -1;
+    await loadTokenAtIndex(batchIndex, direction);
 }
 
 export async function reloadCurrentToken() {

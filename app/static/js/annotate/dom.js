@@ -43,6 +43,7 @@ export const elements = {
     batchMenuBtn: document.getElementById("batch-menu-btn"),
     batchMenu: document.getElementById("batch-menu"),
     jumpTokenBtn: document.getElementById("jump-token-btn"),
+    batchIndexInput: document.getElementById("batch-index-input"),
     autoAdvanceToggle: document.getElementById("auto-advance-toggle"),
     hotkeysBtn: document.getElementById("hotkeys-btn"),
     hotkeysBackdrop: document.getElementById("hotkeys-backdrop"),

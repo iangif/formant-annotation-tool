@@ -12,7 +12,7 @@ import {
     buildNeedsCorrectionPayload,
     buildPanelFieldPayload,
 } from "./payloads.js";
-import { renderBatchMenu, renderBatchProgress } from "./render.js";
+import { renderBatchMenu, renderBatchProgress, renderTokenStatus } from "./render.js";
 
 export async function savePayload(payload) {
     if (!state.currentToken || state.isSaving) {
@@ -41,6 +41,7 @@ export async function savePayload(payload) {
         state.currentToken.latest_annotation = savedAnnotation;
         state.currentToken.is_annotated = true;
         updateCurrentBatchTokenSummaryFromLoadedToken(state.currentToken);
+        renderTokenStatus(state.currentToken)
 
         flashSaveConfirmation();
 

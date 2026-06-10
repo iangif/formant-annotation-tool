@@ -15,6 +15,7 @@ import {
     closePraat,
     jumpToNextUnannotatedToken,
     reloadCurrentToken,
+    loadTokenFromBatchIndexInput,
 } from "./api.js";
 import { registerSpectrogramEvents } from "./spectrogram.js";
 import { registerKeyboardShortcuts } from "./keyboard.js";
@@ -44,6 +45,21 @@ function registerButtonEvents() {
     elements.jumpTokenBtn.addEventListener("click", async () => {
         try {
             await jumpToNextUnannotatedToken();
+        } catch (error) {
+            showToast(error.message, "danger");
+        }
+    });
+
+    elements.batchIndexInput.addEventListener("keydown", async (event) => {
+        if (event.key !== "Enter") {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        try {
+            await loadTokenFromBatchIndexInput();
         } catch (error) {
             showToast(error.message, "danger");
         }

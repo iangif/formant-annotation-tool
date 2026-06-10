@@ -105,6 +105,7 @@ export function setControlsEnabled(enabled) {
         elements.notes,
         elements.batchMenuBtn,
         elements.jumpTokenBtn,
+        elements.batchIndexInput,
         elements.autoAdvanceToggle,
         elements.hotkeysBtn,
         elements.reloadTokenBtn,

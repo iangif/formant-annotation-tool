@@ -131,8 +131,8 @@ kbd {
 }
 
 .spectrogram-wrapper.is-transitioning {
-    opacity: 0;
-    transform: translateY(4px);
+    opacity: 0.72;
+    transform: translateY(2px);
 }
 
 .spectrogram-wrapper.save-confirmed {
@@ -214,35 +214,39 @@ kbd {
     font-variant-numeric: tabular-nums;
 }
 
-.auto-advance-switch {
+.auto-advance-control {
     display: flex;
     align-items: center;
     gap: 0.25rem;
     white-space: nowrap;
 }
 
+.batch-index-input {
+    width: 84px;
+}
+
 .spectrogram-wrapper.transition-left.is-transitioning {
-    opacity: 0;
-    transform: translateX(24px);
+    opacity: 0.72;
+    transform: translateX(12px);
 }
 
 .spectrogram-wrapper.transition-right.is-transitioning {
-    opacity: 0;
-    transform: translateX(-24px);
+    opacity: 0.72;
+    transform: translateX(-12px);
 }
 
 .spectrogram-wrapper.transition-left:not(.is-transitioning) {
-    animation: spectrogram-enter-from-left 140ms ease-out;
+    animation: spectrogram-enter-from-left 110ms ease-out;
 }
 
 .spectrogram-wrapper.transition-right:not(.is-transitioning) {
-    animation: spectrogram-enter-from-right 140ms ease-out;
+    animation: spectrogram-enter-from-right 110ms ease-out;
 }
 
 @keyframes spectrogram-enter-from-left {
     from {
-        opacity: 0;
-        transform: translateX(-24px);
+        opacity: 0.72;
+        transform: translateX(-12px);
     }
     to {
         opacity: 1;
@@ -252,8 +256,8 @@ kbd {
 
 @keyframes spectrogram-enter-from-right {
     from {
-        opacity: 0;
-        transform: translateX(24px);
+        opacity: 0.72;
+        transform: translateX(12px);
     }
     to {
         opacity: 1;
