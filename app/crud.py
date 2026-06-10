@@ -173,6 +173,37 @@ def get_batch_token_at_index(
     )
     return db.scalar(stmt)
 
+
+def annotations_are_identical_except_identity(
+    existing: Annotation,
+    incoming: dict,
+) -> bool:
+    """
+    Return True when an incoming annotation duplicates the latest row.
+
+    Annotation history remains append-only for real edits, but exact
+    resubmissions are ignored so repeated saves do not create noise.
+    Identity/timestamp fields are intentionally ignored.
+    """
+
+    for column in Annotation.__table__.columns:
+        if column.name in {"id", "created_at"}:
+            continue
+
+        existing_value = getattr(existing, column.name)
+        incoming_value = incoming.get(column.name)
+
+        if isinstance(existing_value, AnnotationDecision):
+            existing_value = existing_value.value
+
+        if isinstance(incoming_value, AnnotationDecision):
+            incoming_value = incoming_value.value
+
+        if existing_value != incoming_value:
+            return False
+
+    return True
+
 def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotation:
     """
     Saves one annotation row to the database.
@@ -207,6 +238,8 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
             "displayed_auto_winner_panel",
         }
     )
+
+    data.setdefault("annotation_version", "v1")
 
     winner = token.auto_winner_panel
 
@@ -243,6 +276,15 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
             raise ValueError("complex with four identical panels should be select_panel instead.")
 
         data["selected_panel"] = None
+
+    latest = latest_annotation_for_token(
+        db=db,
+        token_id=annotation_in.token_id,
+        annotator_id=annotation_in.annotator_id,
+    )
+
+    if latest is not None and annotations_are_identical_except_identity(latest, data):
+        return latest
 
     annotation = Annotation(**data)
     db.add(annotation)
