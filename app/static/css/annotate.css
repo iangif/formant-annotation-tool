@@ -301,3 +301,9 @@ kbd {
 #meta-alignment-comment {
     white-space: pre-wrap;
 }
+
+.no-arrows::-webkit-outer-spin-button,
+.no-arrows::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
