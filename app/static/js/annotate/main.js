@@ -67,6 +67,7 @@ function registerButtonEvents() {
 
     elements.autoAdvanceToggle.addEventListener("change", () => {
         persistAutoAdvancePreference();
+        elements.autoAdvanceToggle.blur();
     });
 
     elements.hotkeysBtn.addEventListener("click", openHotkeysPanel);
@@ -121,6 +122,17 @@ function registerButtonEvents() {
     });
 }
 
+function registerTooltips() {
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((element) => {
+        new bootstrap.Tooltip(element, {
+            delay: {
+                show: 800,
+                hide: 0,
+            },
+        });
+    });
+}
+
 async function main() {
     restoreAutoAdvancePreference();
     registerButtonEvents();
@@ -131,6 +143,8 @@ async function main() {
 
     restoreRightPanelWidth();
     registerResizeHandle();
+
+    registerTooltips();
 
     try {
         await initializeBatches();

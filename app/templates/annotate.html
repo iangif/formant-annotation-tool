@@ -53,7 +53,14 @@
                             ></ul>
                         </div>
 
-                        <button id="jump-token-btn" class="btn btn-outline-secondary btn-sm" disabled>
+                        <button
+                            id="jump-token-btn"
+                            class="btn btn-outline-secondary btn-sm" 
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="bottom"
+                            disabled
+                            title="Jump to the next unannotated token"
+                        >
                             Jump
                         </button>
 
@@ -63,10 +70,17 @@
                             type="number"
                             min="1"
                             placeholder="Index"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="bottom"
                             title="Go to token index"
                         />
 
-                        <div class="auto-advance-control border rounded px-2 py-1">
+                        <div
+                            class="auto-advance-control border rounded px-2 py-1"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="bottom"
+                            title="Automatically jump after saving an annotation"
+                        >
                             <input
                                 id="auto-advance-toggle"
                                 class="form-check-input"
@@ -110,7 +124,7 @@
                                     </label>
                                     <input
                                         id="fasttrack-min-max-formant"
-                                        class="form-control form-control-sm"
+                                        class="form-control form-control-sm no-arrows"
                                         type="number"
                                         step="any"
                                     >
@@ -122,7 +136,7 @@
                                     </label>
                                     <input
                                         id="fasttrack-max-max-formant"
-                                        class="form-control form-control-sm"
+                                        class="form-control form-control-sm no-arrows"
                                         type="number"
                                         step="any"
                                     >
@@ -351,6 +365,9 @@
 
                     <dt class="col-4"><kbd>X</kbd></dt>
                     <dd class="col-8">Mark the token as needing correction.</dd>
+
+                    <dt class="col-4">Click panel</dt>
+                    <dd class="col-8">Set all panel fields to that panel.</dd>
 
                     <dt class="col-4">Shift-click panel</dt>
                     <dd class="col-8">Set all panel fields to that panel and save immediately.</dd>
