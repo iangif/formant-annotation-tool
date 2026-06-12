@@ -62,7 +62,13 @@ function registerButtonEvents() {
             await loadTokenFromBatchIndexInput();
         } catch (error) {
             showToast(error.message, "danger");
+        } finally {
+            elements.batchIndexInput.value = "";
         }
+    });
+
+    elements.batchIndexInput.addEventListener("blur", () => {
+        elements.batchIndexInput.value = "";
     });
 
     elements.autoAdvanceToggle.addEventListener("change", () => {
