@@ -1,8 +1,6 @@
 """
 Rsync a locally created upload snapshot to oka.
 
-This file belongs in the web app repo.
-
 Expected workflow:
 
     uv run python -m scripts.upload_annotations ls_eng batch1
