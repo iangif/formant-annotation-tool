@@ -217,6 +217,7 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
     - accept_auto always stores the auto_winner_panel
     - select_panel can never duplicate auto_accept
     - complex must contain at least two distinct panel values
+    - needs_correction may optionally preserve panel_f1-panel_f4 values
     """
 
     token = get_token_by_id(db, annotation_in.token_id)
@@ -276,6 +277,18 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
             raise ValueError("complex with four identical panels should be select_panel instead.")
 
         data["selected_panel"] = None
+
+    elif annotation_in.decision == AnnotationDecision.needs_correction:
+        panels = [annotation_in.panel_f1, annotation_in.panel_f2, annotation_in.panel_f3, annotation_in.panel_f4]
+        non_null_panels = [panel for panel in panels if panel is not None]
+
+        # Panel values are optional for needs_correction. If all four formants
+        # point to one candidate panel, also store selected_panel as a compact
+        # summary while preserving the per-formant fields.
+        if len(non_null_panels) == 4 and len(set(non_null_panels)) == 1:
+            data["selected_panel"] = non_null_panels[0]
+        else:
+            data["selected_panel"] = None
 
     latest = latest_annotation_for_token(
         db=db,

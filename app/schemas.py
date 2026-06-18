@@ -159,8 +159,13 @@ class AnnotationCreate(BaseModel):
         complex:
             all four formant panel fields are required.
 
-        bad_token / needs_correction:
+        bad_token:
             panel fields are optional.
+
+        needs_correction:
+            panel fields are optional, but any provided F1-F4 values are
+            validated and saved. This lets annotators mark a token for future
+            hand correction while preserving the closest candidate panels.
         """
 
         if self.decision == AnnotationDecision.select_panel:

@@ -123,8 +123,8 @@ Annotation rules:
 - accept_auto       -> use token.auto_winner_panel for selected_panel and all panel_f*
 - select_panel      -> all panel_f* fields are the same non-winner panel
 - complex           -> at least one of the panel_f* differs
-- bad_token         -> no panels required
-- needs_correction  -> no panels required
+- bad_token         -> no panels required; panel values not saved
+- needs_correction  -> panel_f* values optional; save them when provided
 """
 class AnnotationDecision(str, enum.Enum):
     accept_auto = "accept_auto"
