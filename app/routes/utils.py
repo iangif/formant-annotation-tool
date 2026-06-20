@@ -6,6 +6,7 @@ def token_to_read(token: Token) -> TokenRead:
         token_id=token.token_id,
         corpus=token.corpus.name,
         speaker=token.speaker,
+        gender=token.gender,
         phone=token.phone,
         ipa=token.ipa,
         word=token.word,

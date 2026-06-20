@@ -26,6 +26,7 @@ class TokenRead(BaseModel):
     token_id: str
     corpus: str
     speaker: str | None = None
+    gender: str | None = None
     phone: str
     ipa: str | None = None
     word: str | None = None

@@ -23,6 +23,7 @@ function clearTokenDisplay(message) {
     elements.metaVowel.textContent = "—";
     elements.metaCorpus.textContent = "—";
     elements.metaSpeaker.textContent = "—";
+    elements.metaGender.textContent = "—";
     elements.metaContext.textContent = "—";
     elements.metaDuration.textContent = "—";
     elements.metaAutoWinner.textContent = "—";
@@ -155,6 +156,7 @@ export function renderToken(token) {
     elements.metaVowel.textContent = displayValue(token.ipa ?? token.phone);
     elements.metaCorpus.textContent = displayValue(token.corpus);
     elements.metaSpeaker.textContent = displayValue(token.speaker);
+    elements.metaGender.textContent = displayValue(token.gender);
 
     elements.metaContext.textContent =
         `${displayValue(token.previous_phone)} _ ${displayValue(token.following_phone)}`;

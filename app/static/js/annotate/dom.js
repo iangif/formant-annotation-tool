@@ -26,6 +26,7 @@ export const elements = {
     metaVowel: document.getElementById("meta-vowel"),
     metaCorpus: document.getElementById("meta-corpus"),
     metaSpeaker: document.getElementById("meta-speaker"),
+    metaGender: document.getElementById("meta-gender"),
     metaContext: document.getElementById("meta-context"),
     metaDuration: document.getElementById("meta-duration"),
     metaAutoWinner: document.getElementById("meta-auto-winner"),
