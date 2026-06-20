@@ -170,7 +170,6 @@ class Annotation(Base):
     panel_f3: Mapped[int | None] = mapped_column(Integer, nullable=True)
     panel_f4: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     annotation_version: Mapped[str] = mapped_column(String, default="v1")
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

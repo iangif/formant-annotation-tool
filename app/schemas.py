@@ -147,8 +147,6 @@ class AnnotationCreate(BaseModel):
     panel_f3: int | None = Field(default=None, ge=MIN_PANEL, le=MAX_PANEL)
     panel_f4: int | None = Field(default=None, ge=MIN_PANEL, le=MAX_PANEL)
 
-    notes: str | None = None
-
     @model_validator(mode="after")
     def validate_panel_fields(self) -> "AnnotationCreate":
         """
@@ -232,7 +230,6 @@ class AnnotationRead(BaseModel):
     panel_f3: int | None = None
     panel_f4: int | None = None
 
-    notes: str | None = None
     annotation_version: str
     created_at: datetime
 
