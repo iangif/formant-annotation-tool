@@ -71,7 +71,8 @@ def get_batch_token_by_index(
         )
 
     latest = crud.latest_annotation_for_token(db, token.token_id, annotator_id)
-    return token_to_batch_read(token, latest)
+    note = crud.latest_note_for_token(db, token.token_id, annotator_id)
+    return token_to_batch_read(token, latest, note)
 
 @router.post("/{batch_id}/last-opened")
 def mark_batch_last_opened(

@@ -20,6 +20,7 @@ export const elements = {
 
     tokenIdLabel: document.getElementById("token-id-label"),
     tokenStatusBadge: document.getElementById("token-status-badge"),
+    tokenNoteCue: document.getElementById("token-note-cue"),
 
     metaWord: document.getElementById("meta-word"),
     metaVowel: document.getElementById("meta-vowel"),
@@ -39,11 +40,14 @@ export const elements = {
     panelF4: document.getElementById("panel-f4"),
 
     notes: document.getElementById("notes"),
+    noteSaveIndicator: document.getElementById("note-save-indicator"),
 
     batchMenuBtn: document.getElementById("batch-menu-btn"),
     batchMenu: document.getElementById("batch-menu"),
     jumpTokenBtn: document.getElementById("jump-token-btn"),
     batchIndexInput: document.getElementById("batch-index-input"),
+    noteDropdownBtn: document.getElementById("note-dropdown-btn"),
+    noteDropdownMenu: document.getElementById("note-dropdown-menu"),
     autoAdvanceToggle: document.getElementById("auto-advance-toggle"),
     hotkeysBtn: document.getElementById("hotkeys-btn"),
     hotkeysBackdrop: document.getElementById("hotkeys-backdrop"),

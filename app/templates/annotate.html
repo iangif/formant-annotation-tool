@@ -75,6 +75,24 @@
                             title="Go to token index"
                         />
 
+                        <div class="dropdown">
+                            <button
+                                id="note-dropdown-btn"
+                                class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                                type="button"
+                                data-bs-toggle="dropdown"
+                                disabled
+                            >
+                                Notes
+                            </button>
+
+                            <ul
+                                id="note-dropdown-menu"
+                                class="dropdown-menu note-dropdown shadow"
+                                aria-labelledby="note-dropdown-btn"
+                            ></ul>
+                        </div>
+
                         <div
                             class="auto-advance-control border rounded px-2 py-1"
                             data-bs-toggle="tooltip"
@@ -247,7 +265,14 @@
                 <div class="card shadow-sm mb-3">
                     <div class="card-header d-flex justify-content-between align-items-center gap-2">
                         <span class="fw-semibold">Token metadata</span>
-                        <span id="token-status-badge" class="badge text-bg-secondary">No token</span>
+                        <span class="d-flex align-items-center gap-2">
+                            <span
+                                id="token-note-cue"
+                                class="badge rounded-pill text-bg-info d-none"
+                                aria-label="This token has a saved note"
+                            >Note</span>
+                            <span id="token-status-badge" class="badge text-bg-secondary">No token</span>
+                        </span>
                     </div>
 
                     <div class="card-body">
@@ -310,12 +335,15 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="notes" class="form-label">Notes</label>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label for="notes" class="form-label mb-0">Note</label>
+                                <span id="note-save-indicator" class="small text-success"></span>
+                            </div>
                             <textarea
                                 id="notes"
                                 class="form-control"
                                 rows="2"
-                                placeholder="Optional notes, e.g. unsure F2, background noise..."
+                                placeholder="Optional note, e.g. unsure F2, background noise..."
                             ></textarea>
                         </div>
 
@@ -365,6 +393,12 @@
 
                     <dt class="col-4"><kbd>X</kbd></dt>
                     <dd class="col-8">Mark the token as needing correction.</dd>
+
+                    <dt class="col-4"><kbd>N</kbd></dt>
+                    <dd class="col-8">Focus the note box.</dd>
+
+                    <dt class="col-4"><kbd>Esc</kbd></dt>
+                    <dd class="col-8">Save the note and leave the note box.</dd>
 
                     <dt class="col-4">Click panel</dt>
                     <dd class="col-8">Set all panel fields to that panel.</dd>

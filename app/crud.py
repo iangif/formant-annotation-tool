@@ -8,8 +8,8 @@ from API routes, scripts, tests, and future command-line utilities.
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
-from app.models import Annotation, AnnotationDecision, Assignment, Batch, Token
-from app.schemas import AnnotationCreate
+from app.models import Annotation, AnnotationDecision, Assignment, Batch, Token, TokenNote
+from app.schemas import AnnotationCreate, TokenNoteCreate
 
 def get_token_by_id(db: Session, token_id: str) -> Token | None:
     """Returns a token by its id."""
@@ -29,6 +29,59 @@ def latest_annotation_for_token(
         .limit(1)
     )
     return db.scalar(stmt)
+
+
+def latest_note_for_token(
+    db: Session,
+    token_id: str,
+    annotator_id: str,
+) -> TokenNote | None:
+    """Returns the mutable note for a token by a specific annotator."""
+
+    stmt = (
+        select(TokenNote)
+        .where(TokenNote.token_id == token_id)
+        .where(TokenNote.annotator_id == annotator_id)
+        .limit(1)
+    )
+    return db.scalar(stmt)
+
+
+def upsert_token_note(db: Session, note_in: TokenNoteCreate) -> TokenNote:
+    """Create or replace the mutable note for one assigned token.
+
+    Empty notes are preserved as an empty mutable row. This keeps the API
+    simple and lets the frontend treat clearing a note as a successful save.
+    Query helpers use trimmed text when deciding whether a token has a note.
+    """
+
+    token = get_token_by_id(db, note_in.token_id)
+
+    if token is None:
+        raise ValueError(f"Unknown token_id: {note_in.token_id}")
+
+    if not is_token_assigned(db, note_in.token_id, note_in.annotator_id):
+        raise ValueError(
+            f"Token {note_in.token_id} is not assigned to annotator "
+            f"{note_in.annotator_id}"
+        )
+
+    note = latest_note_for_token(db, note_in.token_id, note_in.annotator_id)
+    clean_note = note_in.note.strip()
+
+    if note is None:
+        note = TokenNote(
+            token_id=note_in.token_id,
+            annotator_id=note_in.annotator_id,
+            note=clean_note,
+        )
+        db.add(note)
+    else:
+        note.note = clean_note
+
+    db.commit()
+    db.refresh(note)
+    return note
 
 def annotation_history_for_token(
     db: Session,
@@ -140,6 +193,8 @@ def get_batch_token_summaries(
 
     for token in tokens:
         latest = latest_annotation_for_token(db, token.token_id, annotator_id)
+        note = latest_note_for_token(db, token.token_id, annotator_id)
+        note_text = note.note if note else None
 
         summaries.append(
             {
@@ -153,6 +208,8 @@ def get_batch_token_summaries(
                 "speaker": token.speaker,
                 "is_annotated": latest is not None,
                 "latest_decision": latest.decision if latest else None,
+                "has_note": bool(note_text and note_text.strip()),
+                "note": note_text,
             }
         )
 

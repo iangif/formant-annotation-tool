@@ -5,6 +5,7 @@ import { setControlsEnabled, fadeInSpectrogram, showToast } from "./ui.js";
 import { setAllPanelInputs, setPanelInputsFromAnnotation } from "./panels.js";
 import { updateSpectrogramAspectRatio } from "./spectrogram.js";
 import { resetFastTrackStateForToken } from "./fasttrack.js";
+import { prefillNote, renderNoteDropdown, renderTokenNoteCue } from "./notes.js";
 
 function setStatusBadge(label, className) {
     elements.tokenStatusBadge.textContent = label;
@@ -34,6 +35,7 @@ function clearTokenDisplay(message) {
 
     setAllPanelInputs("");
     elements.notes.value = "";
+    elements.tokenNoteCue.classList.add("d-none");
 }
 
 export function renderNoAssignedBatches() {
@@ -58,6 +60,8 @@ export function renderBatchMenu() {
     elements.batchMenuBtn.textContent = currentBatch
         ? `${currentBatch.corpus} / ${currentBatch.name}`
         : "Choose batch";
+
+    renderNoteDropdown();
 
     for (const batch of state.batches) {
         const item = document.createElement("li");
@@ -132,12 +136,12 @@ export function prefillAnnotationFields(token) {
 
     if (latest) {
         setPanelInputsFromAnnotation(latest);
-        elements.notes.value = latest.notes || "";
+        prefillNote(token);
         return;
     }
 
     setAllPanelInputs(token.auto_winner_panel);
-    elements.notes.value = "";
+    prefillNote(token);
 }
 
 export function renderToken(token) {
@@ -174,7 +178,9 @@ export function renderToken(token) {
 
     prefillAnnotationFields(token);
     renderTokenStatus(token);
+    renderTokenNoteCue(token);
     renderBatchProgress();
+    renderNoteDropdown();
 
     elements.spectrogramImage.onload = () => {
         updateSpectrogramAspectRatio();

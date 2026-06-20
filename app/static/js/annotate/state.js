@@ -11,6 +11,7 @@ export const state = {
 
     autoAdvanceEnabled: true,
     hotkeysPanelOpen: false,
+    lastSavedNote: "",
     navigationDirection: 0,
 
     displayedImageSource: "original",

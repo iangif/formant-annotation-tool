@@ -35,7 +35,7 @@ export function formatApiError(data, fallbackMessage) {
     return fallbackMessage;
 }
 
-async function fetchJson(url, options = {}, fallbackMessage = "Request failed.") {
+export async function fetchJson(url, options = {}, fallbackMessage = "Request failed.") {
     const response = await fetch(url, options);
     const data = await response.json().catch(() => null);
 
@@ -59,12 +59,22 @@ export function getCurrentBatchTokenSummary() {
 export function updateCurrentBatchTokenSummaryFromLoadedToken(token) {
     const summary = getCurrentBatchTokenSummary();
 
-    if (!summary || !token.latest_annotation) {
+    if (!summary) {
         return;
     }
 
-    summary.is_annotated = token.is_annotated;
-    summary.latest_decision = token.latest_annotation.decision;
+    if (token.latest_annotation) {
+        summary.is_annotated = token.is_annotated;
+        summary.latest_decision = token.latest_annotation.decision;
+    }
+
+    if (token.latest_note) {
+        summary.note = token.latest_note.note;
+        summary.has_note = Boolean(token.latest_note.note.trim());
+    } else {
+        summary.note = null;
+        summary.has_note = false;
+    }
 }
 
 export async function refreshBatches() {

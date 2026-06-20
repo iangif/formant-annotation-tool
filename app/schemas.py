@@ -66,6 +66,8 @@ class TokenSummaryRead(BaseModel):
 
     is_annotated: bool
     latest_decision: AnnotationDecision | None = None
+    has_note: bool = False
+    note: str | None = None
 
 class BatchTokenRead(TokenRead):
     """
@@ -75,7 +77,9 @@ class BatchTokenRead(TokenRead):
     batch_id: int
     batch_index: int
     latest_annotation: AnnotationRead | None = None
+    latest_note: TokenNoteRead | None = None
     is_annotated: bool
+    has_note: bool = False
 
 class OpenPraatRead(BaseModel):
     """
@@ -191,6 +195,27 @@ class AnnotationCreate(BaseModel):
                 raise ValueError("displayed_auto_winner_panel is required for alternate image submissions")
 
         return self
+
+
+class TokenNoteCreate(BaseModel):
+    """Payload for creating or replacing the mutable note on one token."""
+
+    token_id: str
+    annotator_id: str
+    note: str = ""
+
+
+class TokenNoteRead(BaseModel):
+    """Mutable token note returned to the frontend."""
+
+    id: int
+    token_id: str
+    annotator_id: str
+    note: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 class AnnotationRead(BaseModel):
     """

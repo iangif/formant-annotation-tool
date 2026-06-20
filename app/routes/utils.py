@@ -1,5 +1,5 @@
 from app.models import Token
-from app.schemas import AnnotationRead, BatchTokenRead, TokenRead
+from app.schemas import AnnotationRead, BatchTokenRead, TokenNoteRead, TokenRead
 
 def token_to_read(token: Token) -> TokenRead:
     return TokenRead(
@@ -23,7 +23,7 @@ def token_to_read(token: Token) -> TokenRead:
         textgrid_url=f"/api/files/tokens/{token.token_id}/textgrid" if token.textgrid_path else None,
     )
 
-def token_to_batch_read(token: Token, latest_annotation) -> BatchTokenRead:
+def token_to_batch_read(token: Token, latest_annotation, latest_note=None) -> BatchTokenRead:
     base = token_to_read(token).model_dump()
 
     return BatchTokenRead(
@@ -35,5 +35,11 @@ def token_to_batch_read(token: Token, latest_annotation) -> BatchTokenRead:
             if latest_annotation
             else None
         ),
+        latest_note=(
+            TokenNoteRead.model_validate(latest_note)
+            if latest_note
+            else None
+        ),
         is_annotated=latest_annotation is not None,
+        has_note=bool(latest_note and latest_note.note.strip()),
     )

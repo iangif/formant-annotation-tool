@@ -19,7 +19,7 @@ export function buildBasePayload(decision) {
         token_id: state.currentToken.token_id,
         annotator_id: annotatorId,
         decision: decision,
-        notes: elements.notes.value.trim() || null,
+        notes: null,
         image_source: state.displayedImageSource,
         displayed_auto_winner_panel: state.displayedAutoWinnerPanel,
     };

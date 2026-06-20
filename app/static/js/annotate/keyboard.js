@@ -46,6 +46,12 @@ export function registerKeyboardShortcuts() {
             return;
         }
 
+        if (event.key.toLowerCase() === "n") {
+            event.preventDefault();
+            document.getElementById("notes")?.focus();
+            return;
+        }
+
         if (event.key === "ArrowRight") {
             event.preventDefault();
             runShortcut(() => loadAdjacentToken(1));
