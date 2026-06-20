@@ -4,6 +4,8 @@ A local application for annotating formant tracks from FastTrack candidate spect
 
 ## First-Time Setup
 
+Compatibility note: This project requires a **POSIX-compliant** environment. It natively supports macOS and Linux, but Windows users must use **WSL** (install via `wsl --install`).
+
 ### 1. Install the project
 
 Clone the repository and install dependencies:
@@ -121,3 +123,16 @@ and verify that:
 
 * your `ANNOTATOR_ID` is correct;
 * the corpus contains batches assigned to you.
+
+### Open Praat failure
+
+If you are a Windows user running the app through WSL, you may need to reinstall Praat:
+
+```bash
+sudo apt update
+sudo apt install praat
+```
+
+If there are still errors, manually add the path to the Praat executable in `.env`.
+
+The Praat executable should be located on the same OS as the one running this project.
