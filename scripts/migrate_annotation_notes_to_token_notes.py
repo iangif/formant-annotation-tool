@@ -10,7 +10,6 @@ Optional, only after app code no longer uses annotations.notes:
     uv run python -m scripts.migrate_annotation_notes_to_token_notes --drop-old-column
 
 Default behavior is conservative:
-- creates token_notes if missing
 - copies only notes from the latest annotation per token/annotator
 - does not overwrite existing token_notes rows
 - does not drop annotations.notes unless explicitly requested
