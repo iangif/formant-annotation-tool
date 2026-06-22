@@ -37,6 +37,7 @@ Typical annotation flow:
 - `ui.js`: UI helpers such as toasts, spectrogram fade transitions, save confirmation flashes, and enabling/disabling controls.
 - `panels.js`: Reads, validates, and updates the F1-F4 panel input fields.
 - `payloads.js`: Builds JSON payloads for annotation submissions.
+- `notes.js`: Saves mutable token notes, renders note cues/dropdown, and handles note focus/blur behavior.
 - `actions.js`: Coordinates save actions, posts annotations to the backend, handles success/error behavior, and loads the next token.
 - `spectrogram.js`: Handles image sizing, hover overlay, panel detection, click selection, and shift-click save.
 - `keyboard.js`: Handles keyboard shortcuts.

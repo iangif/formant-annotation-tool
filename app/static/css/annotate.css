@@ -307,3 +307,18 @@ kbd {
     -webkit-appearance: none;
     margin: 0;
 }
+.note-dropdown {
+    width: 320px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.note-menu-item .text-truncate {
+    max-width: 280px;
+}
+
+#notes.note-saved-glow {
+    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+    border-color: #198754;
+    transition: box-shadow 120ms ease, border-color 120ms ease;
+}

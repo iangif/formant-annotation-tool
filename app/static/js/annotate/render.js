@@ -5,6 +5,7 @@ import { setControlsEnabled, fadeInSpectrogram, showToast } from "./ui.js";
 import { setAllPanelInputs, setPanelInputsFromAnnotation } from "./panels.js";
 import { updateSpectrogramAspectRatio } from "./spectrogram.js";
 import { resetFastTrackStateForToken } from "./fasttrack.js";
+import { prefillNote, renderNoteDropdown, renderTokenNoteCue } from "./notes.js";
 
 function setStatusBadge(label, className) {
     elements.tokenStatusBadge.textContent = label;
@@ -22,6 +23,7 @@ function clearTokenDisplay(message) {
     elements.metaVowel.textContent = "—";
     elements.metaCorpus.textContent = "—";
     elements.metaSpeaker.textContent = "—";
+    elements.metaGender.textContent = "—";
     elements.metaContext.textContent = "—";
     elements.metaDuration.textContent = "—";
     elements.metaAutoWinner.textContent = "—";
@@ -34,6 +36,7 @@ function clearTokenDisplay(message) {
 
     setAllPanelInputs("");
     elements.notes.value = "";
+    elements.tokenNoteCue.classList.add("d-none");
 }
 
 export function renderNoAssignedBatches() {
@@ -58,6 +61,8 @@ export function renderBatchMenu() {
     elements.batchMenuBtn.textContent = currentBatch
         ? `${currentBatch.corpus} / ${currentBatch.name}`
         : "Choose batch";
+
+    renderNoteDropdown();
 
     for (const batch of state.batches) {
         const item = document.createElement("li");
@@ -132,12 +137,12 @@ export function prefillAnnotationFields(token) {
 
     if (latest) {
         setPanelInputsFromAnnotation(latest);
-        elements.notes.value = latest.notes || "";
+        prefillNote(token);
         return;
     }
 
     setAllPanelInputs(token.auto_winner_panel);
-    elements.notes.value = "";
+    prefillNote(token);
 }
 
 export function renderToken(token) {
@@ -151,6 +156,7 @@ export function renderToken(token) {
     elements.metaVowel.textContent = displayValue(token.ipa ?? token.phone);
     elements.metaCorpus.textContent = displayValue(token.corpus);
     elements.metaSpeaker.textContent = displayValue(token.speaker);
+    elements.metaGender.textContent = displayValue(token.gender);
 
     elements.metaContext.textContent =
         `${displayValue(token.previous_phone)} _ ${displayValue(token.following_phone)}`;
@@ -174,7 +180,9 @@ export function renderToken(token) {
 
     prefillAnnotationFields(token);
     renderTokenStatus(token);
+    renderTokenNoteCue(token);
     renderBatchProgress();
+    renderNoteDropdown();
 
     elements.spectrogramImage.onload = () => {
         updateSpectrogramAspectRatio();

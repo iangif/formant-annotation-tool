@@ -7,6 +7,7 @@ import {
 import { loadAdjacentToken } from "./api.js";
 import { state } from "./state.js";
 import { closeHotkeysPanel, showToast } from "./ui.js";
+import { elements } from "./dom.js";
 
 /**
  * Ignore hotkeys while the user is typing into form fields.
@@ -37,12 +38,22 @@ export function registerKeyboardShortcuts() {
         }
 
         if (event.key === "Enter") {
+            if (event.target === elements.notes) {
+                return; // allow newline in notes textarea
+            }
+
             event.preventDefault();
             runShortcut(saveCurrentPanelFields);
             return;
         }
 
         if (isTypingInInput(event)) {
+            return;
+        }
+
+        if (event.key.toLowerCase() === "n") {
+            event.preventDefault();
+            document.getElementById("notes")?.focus();
             return;
         }
 
