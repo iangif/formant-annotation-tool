@@ -26,6 +26,7 @@ class TokenRead(BaseModel):
     token_id: str
     corpus: str
     speaker: str | None = None
+    gender: str | None = None
     phone: str
     ipa: str | None = None
     word: str | None = None
@@ -66,6 +67,8 @@ class TokenSummaryRead(BaseModel):
 
     is_annotated: bool
     latest_decision: AnnotationDecision | None = None
+    has_note: bool = False
+    note: str | None = None
 
 class BatchTokenRead(TokenRead):
     """
@@ -75,7 +78,9 @@ class BatchTokenRead(TokenRead):
     batch_id: int
     batch_index: int
     latest_annotation: AnnotationRead | None = None
+    latest_note: TokenNoteRead | None = None
     is_annotated: bool
+    has_note: bool = False
 
 class OpenPraatRead(BaseModel):
     """
@@ -143,8 +148,6 @@ class AnnotationCreate(BaseModel):
     panel_f3: int | None = Field(default=None, ge=MIN_PANEL, le=MAX_PANEL)
     panel_f4: int | None = Field(default=None, ge=MIN_PANEL, le=MAX_PANEL)
 
-    notes: str | None = None
-
     @model_validator(mode="after")
     def validate_panel_fields(self) -> "AnnotationCreate":
         """
@@ -159,8 +162,13 @@ class AnnotationCreate(BaseModel):
         complex:
             all four formant panel fields are required.
 
-        bad_token / needs_correction:
+        bad_token:
             panel fields are optional.
+
+        needs_correction:
+            panel fields are optional, but any provided F1-F4 values are
+            validated and saved. This lets annotators mark a token for future
+            hand correction while preserving the closest candidate panels.
         """
 
         if self.decision == AnnotationDecision.select_panel:
@@ -187,6 +195,27 @@ class AnnotationCreate(BaseModel):
 
         return self
 
+
+class TokenNoteCreate(BaseModel):
+    """Payload for creating or replacing the mutable note on one token."""
+
+    token_id: str
+    annotator_id: str
+    note: str = ""
+
+
+class TokenNoteRead(BaseModel):
+    """Mutable token note returned to the frontend."""
+
+    id: int
+    token_id: str
+    annotator_id: str
+    note: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
 class AnnotationRead(BaseModel):
     """
     Annotation row returned after a successful save.
@@ -202,7 +231,6 @@ class AnnotationRead(BaseModel):
     panel_f3: int | None = None
     panel_f4: int | None = None
 
-    notes: str | None = None
     annotation_version: str
     created_at: datetime
 

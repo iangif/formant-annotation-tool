@@ -19,7 +19,6 @@ export function buildBasePayload(decision) {
         token_id: state.currentToken.token_id,
         annotator_id: annotatorId,
         decision: decision,
-        notes: elements.notes.value.trim() || null,
         image_source: state.displayedImageSource,
         displayed_auto_winner_panel: state.displayedAutoWinnerPanel,
     };
@@ -41,8 +40,38 @@ export function buildBadTokenPayload() {
 }
 
 
+/**
+ * Builds a needs_correction payload. Panel numbers are optional for this
+ * decision, but when the annotator has entered valid F1-F4 panel values we
+ * preserve them so the future hand-correction/export pipeline can see the
+ * closest candidate context the annotator was looking at.
+ */
 export function buildNeedsCorrectionPayload() {
-    return buildBasePayload("needs_correction");
+    const panels = readAllPanelInputs();
+
+    if (!panelsAreValid(panels)) {
+        throw new Error(`F1-F4 panel values must be blank or integers from ${MIN_PANEL} to ${MAX_PANEL}.`);
+    }
+
+    const [panelF1, panelF2, panelF3, panelF4] = panels;
+    const nonNullPanels = panels.filter((panel) => panel !== null);
+
+    const payload = {
+        ...buildBasePayload("needs_correction"),
+        panel_f1: panelF1,
+        panel_f2: panelF2,
+        panel_f3: panelF3,
+        panel_f4: panelF4,
+    };
+
+    if (
+        nonNullPanels.length === 4 &&
+        new Set(nonNullPanels).size === 1
+    ) {
+        payload.selected_panel = panelF1;
+    }
+
+    return payload;
 }
 
 /**

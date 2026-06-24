@@ -128,6 +128,9 @@ def find_local_file(root: Path, file_stem: str, suffix: str) -> Path | None:
     matches = list(root.rglob(f"{file_stem}{suffix}"))
     return matches[0] if matches else None
 
+def has_required_image(batch_root: Path, file_stem: str) -> bool:
+    return find_local_file(batch_root / "images", file_stem, ".png") is not None
+
 def token_values(
     row: dict[str, str],
     corpus: Corpus,
@@ -222,7 +225,17 @@ def sync_one_batch(db, batch_root: Path) -> int:
     count = 0
     with csv_path.open(newline="", encoding="utf-8") as file:
         reader = csv.DictReader(file)
-        for batch_index, row in enumerate(reader):
+
+        batch_index = 0
+        for row in reader:
+            file_stem = empty_to_none(row.get("file"))
+            if file_stem is None:
+                continue
+
+            if not has_required_image(batch_root, file_stem):
+                print(f"Skipping token with missing image: {batch_root} / {file_stem}")
+                continue
+
             upsert_token(
                 db,
                 token_values(
@@ -235,6 +248,8 @@ def sync_one_batch(db, batch_root: Path) -> int:
                     batch_index=batch_index,
                 ),
             )
+
+            batch_index += 1
             count += 1
     
     return count

@@ -25,6 +25,7 @@ import {
 } from "./resize-panel.js";
 import { registerFastTrackEvents } from "./fasttrack.js";
 import { registerPanelInputEvents } from "./panels.js";
+import { registerNoteEvents } from "./notes.js";
 
 function registerButtonEvents() {
     elements.batchMenu.addEventListener("click", async (event) => {
@@ -144,6 +145,7 @@ async function main() {
     registerButtonEvents();
     registerFastTrackEvents();
     registerPanelInputEvents();
+    registerNoteEvents();
     registerSpectrogramEvents();
     registerKeyboardShortcuts();
 

@@ -123,8 +123,8 @@ Annotation rules:
 - accept_auto       -> use token.auto_winner_panel for selected_panel and all panel_f*
 - select_panel      -> all panel_f* fields are the same non-winner panel
 - complex           -> at least one of the panel_f* differs
-- bad_token         -> no panels required
-- needs_correction  -> no panels required
+- bad_token         -> no panels required; panel values not saved
+- needs_correction  -> panel_f* values optional; save them when provided
 """
 class AnnotationDecision(str, enum.Enum):
     accept_auto = "accept_auto"
@@ -132,6 +132,27 @@ class AnnotationDecision(str, enum.Enum):
     bad_token = "bad_token"
     needs_correction = "needs_correction"
     complex = "complex"
+
+class TokenNote(Base):
+    """Mutable per-token note for one annotator.
+
+    Notes are intentionally separate from append-only annotations so an
+    annotator can leave or edit a note without completing the token.
+    """
+
+    __tablename__ = "token_notes"
+    __table_args__ = (
+        UniqueConstraint("token_id", "annotator_id", name="uq_token_notes_token_annotator"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    token_id: Mapped[str] = mapped_column(ForeignKey("tokens.token_id"), index=True, nullable=False)
+    annotator_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    note: Mapped[str] = mapped_column(Text, nullable=False, default="")
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
 
 class Annotation(Base):
     __tablename__ = "annotations"
@@ -149,7 +170,6 @@ class Annotation(Base):
     panel_f3: Mapped[int | None] = mapped_column(Integer, nullable=True)
     panel_f4: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     annotation_version: Mapped[str] = mapped_column(String, default="v1")
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
