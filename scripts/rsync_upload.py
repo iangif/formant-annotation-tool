@@ -19,7 +19,7 @@ from pathlib import Path
 from app.config import ANNOTATOR_ID, PROJECT_ROOT, REMOTE_USER_HOST
 
 
-REMOTE_UPLOAD_ROOT = "/projects/xling-measures/annotation_uploads"
+REMOTE_UPLOAD_ROOT = "/projects/xling-measures/export/annotation_uploads"
 
 def local_snapshot_path(corpus: str, batch: str) -> Path:
     return PROJECT_ROOT / "exports" / "uploads" / corpus / batch / "annotations.sqlite"
