@@ -8,6 +8,7 @@ This file writes a lightweight SQLite snapshot here by default:
 The snapshot contains:
 1. metadata for tokens in requested corpus/batch
 2. latest annotation per token/annotator
+3. non-empty token notes
 3. a small manifest table describing how the snapshot was produced
 
 This file does not rsync to oka. Transport is done through ...
@@ -38,7 +39,7 @@ from sqlalchemy.orm import Session
 
 from app.config import ANNOTATOR_ID, PROJECT_ROOT
 from app.database import SessionLocal
-from app.models import Annotation, Batch, Corpus, Token
+from app.models import Annotation, Batch, Corpus, Token, TokenNote
 
 
 SNAPSHOT_SCHEMA_VERSION = "upload_snapshot_v1"
@@ -127,9 +128,19 @@ def define_snapshot_tables(metadata: MetaData) -> dict[str, Table]:
         __import__("sqlalchemy").Column("panel_f2", Integer),
         __import__("sqlalchemy").Column("panel_f3", Integer),
         __import__("sqlalchemy").Column("panel_f4", Integer),
-        __import__("sqlalchemy").Column("notes", Text),
         __import__("sqlalchemy").Column("annotation_version", String),
         __import__("sqlalchemy").Column("created_at", String),
+    )
+
+    token_notes = Table(
+        "token_notes",
+        metadata,
+        __import__("sqlalchemy").Column("note_id", Integer, primary_key=True),
+        __import__("sqlalchemy").Column("token_id", String, nullable=False, index=True),
+        __import__("sqlalchemy").Column("annotator_id", String, nullable=False, index=True),
+        __import__("sqlalchemy").Column("note", Text, nullable=False),
+        __import__("sqlalchemy").Column("created_at", String),
+        __import__("sqlalchemy").Column("updated_at", String),
     )
 
     manifest = Table(
@@ -142,6 +153,7 @@ def define_snapshot_tables(metadata: MetaData) -> dict[str, Table]:
     return {
         "tokens": tokens,
         "annotations": annotations,
+        "token_notes": token_notes,
         "manifest": manifest,
     }
 
@@ -224,6 +236,25 @@ def latest_annotations_for_batch(
 
     return list(db.scalars(stmt))
 
+def token_notes_for_batch(
+    db: Session,
+    batch: Batch,
+    annotator_id: str | None,
+) -> list[TokenNote]:
+    """Load non-empty token notes for tokens in a batch."""
+
+    stmt = (
+        select(TokenNote)
+        .join(Token, Token.token_id == TokenNote.token_id)
+        .where(Token.batch_id == batch.id)
+        .where(func.trim(TokenNote.note) != "")
+    )
+
+    if annotator_id is not None:
+        stmt = stmt.where(TokenNote.annotator_id == annotator_id)
+
+    return list(db.scalars(stmt))
+
 def token_to_row(token: Token, corpus_name: str, batch_name: str) -> dict[str, Any]:
     """Convert an app Token ORM object into a snapshot row."""
 
@@ -275,9 +306,18 @@ def annotation_to_row(annotation: Annotation) -> dict[str, Any]:
         "panel_f2": annotation.panel_f2,
         "panel_f3": annotation.panel_f3,
         "panel_f4": annotation.panel_f4,
-        "notes": annotation.notes,
         "annotation_version": annotation.annotation_version,
         "created_at": iso_datetime(annotation.created_at),
+    }
+
+def token_note_to_row(note: TokenNote) -> dict[str, Any]:
+    return {
+        "note_id": note.id,
+        "token_id": note.token_id,
+        "annotator_id": note.annotator_id,
+        "note": note.note,
+        "created_at": iso_datetime(note.created_at),
+        "updated_at": iso_datetime(note.updated_at),
     }
 
 def write_snapshot(
@@ -288,6 +328,7 @@ def write_snapshot(
     annotator_id: str | None,
     tokens: list[Token],
     annotations: list[Annotation],
+    token_notes: list[TokenNote],
 ) -> None:
     """Create the output SQLite snapshot from token and annotation rows."""
 
@@ -306,6 +347,7 @@ def write_snapshot(
         for token in tokens
     ]
     annotation_rows = [annotation_to_row(annotation) for annotation in annotations]
+    token_note_rows = [token_note_to_row(note) for note in token_notes]
 
     manifest_rows = {
         "schema_version": SNAPSHOT_SCHEMA_VERSION,
@@ -315,6 +357,7 @@ def write_snapshot(
         "annotator_id": annotator_id or "ALL",
         "token_count": str(len(token_rows)),
         "latest_annotation_count": str(len(annotation_rows)),
+        "token_note_count": str(len(token_note_rows)),
         "contains_annotation_history": "false",
         "source": "formant-annotation-tool scripts/upload_annotations.py",
     }
@@ -325,6 +368,9 @@ def write_snapshot(
 
         if annotation_rows:
             conn.execute(insert(tables["annotations"]), annotation_rows)
+
+        if token_note_rows:
+            conn.execute(insert(tables["token_notes"]), token_note_rows)
 
         conn.execute(
             insert(tables["manifest"]),
@@ -395,6 +441,11 @@ def main() -> None:
             batch=batch,
             annotator_id=annotator_id,
         )
+        token_notes = token_notes_for_batch(
+            db=db,
+            batch=batch,
+            annotator_id=annotator_id,
+        )
 
     write_snapshot(
         output_path=output_path,
@@ -403,11 +454,13 @@ def main() -> None:
         annotator_id=annotator_id,
         tokens=tokens,
         annotations=annotations,
+        token_notes=token_notes,
     )
 
     print(f"Created upload snapshot: {output_path}")
     print(f"Tokens included: {len(tokens)}")
     print(f"Latest annotations included: {len(annotations)}")
+    print(f"Token notes included: {len(token_notes)}")
 
 
 if __name__ == "__main__":
