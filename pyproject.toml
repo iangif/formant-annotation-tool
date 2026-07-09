@@ -19,4 +19,4 @@ dependencies = [
 
 [tool.uv.sources]
 fasttrackpy = { git = "https://github.com/massimolipari/fasttrackpy.git", rev = "e776cd2af01835fc935a8316b0d5c231961efdae" }
-formants-export = { git = "ssh://git@github.com/massimolipari/formants.git", rev = "exporting" }
+formants-export = { git = "ssh://git@github.com/massimolipari/formants.git", rev = "main" }
