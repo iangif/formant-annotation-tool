@@ -10,9 +10,16 @@ Example:
 
 Optional manual adjudication workflow:
 
-    1. Run this once. It creates reconciliation files under exports/reconciliation/.
-    2. If disagreements exist, edit adjudication_decisions_template.csv.
-    3. Re-run with --adjudication-decisions path/to/edited.csv.
+    1. Run this once. It creates reconciliation files under:
+       exports/reconciliation/{corpus}/{batch}/
+    2. If disagreements exist, edit:
+       exports/reconciliation/{corpus}/{batch}/adjudication_decisions_template.csv
+    3. Re-run the same command. The edited template will be used automatically.
+
+For developer testing, unresolved/blank/invalid adjudication rows can be excluded
+instead of raising an error:
+
+    uv run python -m scripts.export_gold_local ls_eng batch1 --ignore-conflicts
 """
 
 from __future__ import annotations
@@ -42,7 +49,19 @@ def parse_args() -> argparse.Namespace:
         "--adjudication-decisions",
         type=Path,
         default=None,
-        help="Edited adjudication decisions CSV for disagreement tokens.",
+        help=(
+            "Optional override path to an edited adjudication decisions CSV. "
+            "By default, uses the template created under "
+            "exports/reconciliation/{corpus}/{batch}/."
+        ),
+    )
+    parser.add_argument(
+        "--ignore-conflicts",
+        action="store_true",
+        help=(
+            "Developer/testing mode: unresolved, blank, or invalid adjudication "
+            "rows are excluded as unresolved_conflict instead of raising an error."
+        ),
     )
     parser.add_argument(
         "--project-root",
@@ -62,7 +81,17 @@ def main() -> None:
     snapshot_path = paths.upload_snapshot_path(args.corpus, args.batch)
     central_db_path = paths.central_annotations_path
     resolved_db_path = paths.resolved_annotations_path
+
+    # Keep local reconciliation layout consistent with the shared package:
+    # exports/reconciliation/{corpus}/{batch}/...
     reconciliation_dir = paths.reconciliation_root / args.corpus / args.batch
+    reconciliation_report_path = reconciliation_dir / "reconciliation_report.csv"
+    adjudication_decisions_path = (
+        args.adjudication_decisions
+        if args.adjudication_decisions is not None
+        else reconciliation_dir / "adjudication_decisions_template.csv"
+    )
+
     output_root = paths.gold_batch_root(args.corpus, args.batch)
 
     merge_result = merge_upload_snapshots(
@@ -85,9 +114,10 @@ def main() -> None:
 
     resolve_result = create_resolved_annotations(
         central_db_path=central_db_path,
-        reconciliation_report_path=Path(reconciliation_result["report_path"]),
-        adjudication_decisions_path=args.adjudication_decisions,
+        reconciliation_report_path=reconciliation_report_path,
+        adjudication_decisions_path=adjudication_decisions_path,
         output_db_path=resolved_db_path,
+        ignore_conflicts=args.ignore_conflicts,
     )
     print("Created resolved annotations DB:")
     for key, value in resolve_result.items():
