@@ -9,7 +9,6 @@ import {
 import {
     buildAcceptAutoPayload,
     buildBadTokenPayload,
-    buildNeedsCorrectionPayload,
     buildPanelFieldPayload,
 } from "./payloads.js";
 import {
@@ -91,10 +90,6 @@ export async function saveAcceptAuto() {
 
 export async function saveBadToken() {
     await savePayload(buildBadTokenPayload());
-}
-
-export async function saveNeedsCorrection() {
-    await savePayload(buildNeedsCorrectionPayload());
 }
 
 export async function saveCurrentPanelFields() {

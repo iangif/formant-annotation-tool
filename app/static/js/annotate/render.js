@@ -2,7 +2,12 @@ import { elements } from "./dom.js";
 import { displayValue } from "./utils.js";
 import { state } from "./state.js";
 import { setControlsEnabled, fadeInSpectrogram, showToast } from "./ui.js";
-import { setAllPanelInputs, setPanelInputsFromAnnotation } from "./panels.js";
+import {
+    annotationHasNeedsCorrection,
+    setAllPanelInputs,
+    setNeedsCorrectionFlagsFromAnnotation,
+    setPanelInputsFromAnnotation,
+} from "./panels.js";
 import { updateSpectrogramAspectRatio } from "./spectrogram.js";
 import { resetFastTrackStateForToken } from "./fasttrack.js";
 import { prefillNote, renderNoteDropdown, renderTokenNoteCue } from "./notes.js";
@@ -35,6 +40,7 @@ function clearTokenDisplay(message) {
     elements.audioPlayer.removeAttribute("src");
 
     setAllPanelInputs("");
+    setNeedsCorrectionFlagsFromAnnotation();
     elements.notes.value = "";
     elements.tokenNoteCue.classList.add("d-none");
 }
@@ -124,7 +130,10 @@ export function renderTokenStatus(token) {
         return;
     }
 
-    if (latest.decision === "needs_correction") {
+    if (
+        latest.decision === "needs_correction" ||
+        annotationHasNeedsCorrection(latest)
+    ) {
         setStatusBadge("Needs correction", "text-bg-warning");
         return;
     }
@@ -142,6 +151,7 @@ export function prefillAnnotationFields(token) {
     }
 
     setAllPanelInputs(token.auto_winner_panel);
+    setNeedsCorrectionFlagsFromAnnotation();
     prefillNote(token);
 }
 

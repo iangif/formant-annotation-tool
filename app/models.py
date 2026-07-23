@@ -124,7 +124,11 @@ Annotation rules:
 - select_panel      -> all panel_f* fields are the same non-winner panel
 - complex           -> at least one of the panel_f* differs
 - bad_token         -> no panels required; panel values not saved
-- needs_correction  -> panel_f* values optional; save them when provided
+
+needs_correction_f1 through needs_correction_f4 are independent quality flags
+attached to the selected formants. ``needs_correction`` remains in the enum only
+so a pre-migration local database can still be opened safely; new API requests
+must use one of the panel decisions above.
 """
 class AnnotationDecision(str, enum.Enum):
     accept_auto = "accept_auto"
@@ -170,7 +174,12 @@ class Annotation(Base):
     panel_f3: Mapped[int | None] = mapped_column(Integer, nullable=True)
     panel_f4: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    annotation_version: Mapped[str] = mapped_column(String, default="v1")
+    needs_correction_f1: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    needs_correction_f2: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    needs_correction_f3: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    needs_correction_f4: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    annotation_version: Mapped[str] = mapped_column(String, default="v2")
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

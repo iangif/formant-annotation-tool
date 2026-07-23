@@ -319,21 +319,37 @@
                             <div class="formant-row formant-f4">
                                 <label for="panel-f4" class="form-label mb-0">F4 panel</label>
                                 <input id="panel-f4" class="form-control form-control-sm panel-input" type="number" min="0" max="19" inputmode="numeric">
+                                <div class="form-check mb-0">
+                                    <input id="needs-correction-f4" class="form-check-input correction-checkbox" type="checkbox">
+                                    <label for="needs-correction-f4" class="form-check-label">Needs correction</label>
+                                </div>
                             </div>
 
                             <div class="formant-row formant-f3">
                                 <label for="panel-f3" class="form-label mb-0">F3 panel</label>
                                 <input id="panel-f3" class="form-control form-control-sm panel-input" type="number" min="0" max="19" inputmode="numeric">
+                                <div class="form-check mb-0">
+                                    <input id="needs-correction-f3" class="form-check-input correction-checkbox" type="checkbox">
+                                    <label for="needs-correction-f3" class="form-check-label">Needs correction</label>
+                                </div>
                             </div>
 
                             <div class="formant-row formant-f2">
                                 <label for="panel-f2" class="form-label mb-0">F2 panel</label>
                                 <input id="panel-f2" class="form-control form-control-sm panel-input" type="number" min="0" max="19" inputmode="numeric">
+                                <div class="form-check mb-0">
+                                    <input id="needs-correction-f2" class="form-check-input correction-checkbox" type="checkbox">
+                                    <label for="needs-correction-f2" class="form-check-label">Needs correction</label>
+                                </div>
                             </div>
 
                             <div class="formant-row formant-f1">
                                 <label for="panel-f1" class="form-label mb-0">F1 panel</label>
                                 <input id="panel-f1" class="form-control form-control-sm panel-input" type="number" min="0" max="19" inputmode="numeric">
+                                <div class="form-check mb-0">
+                                    <input id="needs-correction-f1" class="form-check-input correction-checkbox" type="checkbox">
+                                    <label for="needs-correction-f1" class="form-check-label">Needs correction</label>
+                                </div>
                             </div>
                         </div>
 
@@ -394,14 +410,17 @@
                     <dt class="col-4"><kbd>B</kbd></dt>
                     <dd class="col-8">Mark the token as bad.</dd>
 
+                    <dt class="col-4"><kbd>1</kbd>–<kbd>4</kbd></dt>
+                    <dd class="col-8">Focus the corresponding F1-F4 panel field.</dd>
+
                     <dt class="col-4"><kbd>X</kbd></dt>
-                    <dd class="col-8">Mark the token as needing correction.</dd>
+                    <dd class="col-8">Toggle Needs correction for the focused formant.</dd>
 
                     <dt class="col-4"><kbd>N</kbd></dt>
                     <dd class="col-8">Focus the note box.</dd>
 
                     <dt class="col-4"><kbd>Esc</kbd></dt>
-                    <dd class="col-8">Save the note and leave the note box.</dd>
+                    <dd class="col-8">Leave a formant field without saving; in the note box, save the note and leave.</dd>
 
                     <dt class="col-4">Click panel</dt>
                     <dd class="col-8">Set all panel fields to that panel.</dd>

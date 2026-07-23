@@ -49,6 +49,28 @@ export function hasAtLeastOnePanel(panels) {
     return panels.some((panel) => panel !== null);
 }
 
+export function readNeedsCorrectionFlags() {
+    return {
+        needs_correction_f1: elements.needsCorrectionF1.checked,
+        needs_correction_f2: elements.needsCorrectionF2.checked,
+        needs_correction_f3: elements.needsCorrectionF3.checked,
+        needs_correction_f4: elements.needsCorrectionF4.checked,
+    };
+}
+
+export function setNeedsCorrectionFlagsFromAnnotation(annotation = {}) {
+    elements.needsCorrectionF1.checked = Boolean(annotation.needs_correction_f1);
+    elements.needsCorrectionF2.checked = Boolean(annotation.needs_correction_f2);
+    elements.needsCorrectionF3.checked = Boolean(annotation.needs_correction_f3);
+    elements.needsCorrectionF4.checked = Boolean(annotation.needs_correction_f4);
+}
+
+export function annotationHasNeedsCorrection(annotation = {}) {
+    return [1, 2, 3, 4].some(
+        (formant) => Boolean(annotation[`needs_correction_f${formant}`])
+    );
+}
+
 /**
  * Sets all panels given a panel number.
  */
@@ -71,6 +93,7 @@ export function setPanelInputsFromAnnotation(annotation) {
     elements.panelF2.value = annotation.panel_f2 ?? fallbackPanel;
     elements.panelF3.value = annotation.panel_f3 ?? fallbackPanel;
     elements.panelF4.value = annotation.panel_f4 ?? fallbackPanel;
+    setNeedsCorrectionFlagsFromAnnotation(annotation);
 }
 
 /**

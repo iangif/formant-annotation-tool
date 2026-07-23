@@ -185,7 +185,7 @@ kbd {
 
 .formant-row {
     display: grid;
-    grid-template-columns: 76px minmax(0, 1fr);
+    grid-template-columns: 76px minmax(58px, 1fr) auto;
     align-items: center;
     gap: 0.5rem;
     padding: 0.45rem 0.5rem;
@@ -193,6 +193,16 @@ kbd {
     border-left-width: 5px;
     border-radius: 0.5rem;
     background: #fff;
+}
+
+.formant-row .form-check {
+    white-space: nowrap;
+    font-size: 0.82rem;
+}
+
+.correction-checkbox:checked {
+    background-color: #ffc107;
+    border-color: #b58105;
 }
 
 .formant-f1 { border-left-color: #0072B2; }

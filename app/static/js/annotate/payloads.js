@@ -3,6 +3,7 @@ import { state } from "./state.js";
 import { MIN_PANEL, MAX_PANEL } from "./constants.js";
 import {
     readAllPanelInputs,
+    readNeedsCorrectionFlags,
     panelsAreValid,
     hasAtLeastOnePanel,
 } from "./panels.js";
@@ -32,7 +33,10 @@ export function buildBasePayload(decision) {
 }
 
 export function buildAcceptAutoPayload() {
-    return buildBasePayload("accept_auto");
+    return {
+        ...buildBasePayload("accept_auto"),
+        ...readNeedsCorrectionFlags(),
+    };
 }
 
 export function buildBadTokenPayload() {
@@ -41,51 +45,30 @@ export function buildBadTokenPayload() {
 
 
 /**
- * Builds a needs_correction payload. Panel numbers are optional for this
- * decision, but when the annotator has entered valid F1-F4 panel values we
- * preserve them so the future hand-correction/export pipeline can see the
- * closest candidate context the annotator was looking at.
- */
-export function buildNeedsCorrectionPayload() {
-    const panels = readAllPanelInputs();
-
-    if (!panelsAreValid(panels)) {
-        throw new Error(`F1-F4 panel values must be blank or integers from ${MIN_PANEL} to ${MAX_PANEL}.`);
-    }
-
-    const [panelF1, panelF2, panelF3, panelF4] = panels;
-    const nonNullPanels = panels.filter((panel) => panel !== null);
-
-    const payload = {
-        ...buildBasePayload("needs_correction"),
-        panel_f1: panelF1,
-        panel_f2: panelF2,
-        panel_f3: panelF3,
-        panel_f4: panelF4,
-    };
-
-    if (
-        nonNullPanels.length === 4 &&
-        new Set(nonNullPanels).size === 1
-    ) {
-        payload.selected_panel = panelF1;
-    }
-
-    return payload;
-}
-
-/**
  * Builds the JSON payload based on panel inputs.
  */
 export function buildPanelFieldPayload() {
     const panels = readAllPanelInputs();
+    const correctionFlags = readNeedsCorrectionFlags();
     
     if (!panelsAreValid(panels)) {
         throw new Error(`F1-F4 panel values must be blank or integers from ${MIN_PANEL} to ${MAX_PANEL}.`);
     }
 
     if (!hasAtLeastOnePanel(panels)) {
-        throw new Error("At least one F1-F4 panel value is required.");
+        if (!Object.values(correctionFlags).some(Boolean)) {
+            throw new Error(
+                "At least one F1-F4 panel value or needs-correction flag is required."
+            );
+        }
+        return {
+            ...buildBasePayload("complex"),
+            panel_f1: null,
+            panel_f2: null,
+            panel_f3: null,
+            panel_f4: null,
+            ...correctionFlags,
+        };
     }
 
     const [panelF1, panelF2, panelF3, panelF4] = panels;
@@ -96,7 +79,10 @@ export function buildPanelFieldPayload() {
     const uniqueNonNullPanels = new Set(nonNullPanels);
 
     if (allFilled && panels.every((panel) => panel === autoWinner)) {
-        return buildBasePayload("accept_auto");
+        return {
+            ...buildBasePayload("accept_auto"),
+            ...correctionFlags,
+        };
     }
 
     if (allFilled && uniqueNonNullPanels.size === 1) {
@@ -109,6 +95,7 @@ export function buildPanelFieldPayload() {
             panel_f2: selectedPanel,
             panel_f3: selectedPanel,
             panel_f4: selectedPanel,
+            ...correctionFlags,
         };
     }
 
@@ -118,5 +105,6 @@ export function buildPanelFieldPayload() {
         panel_f2: panelF2,
         panel_f3: panelF3,
         panel_f4: panelF4,
+        ...correctionFlags,
     }
 }

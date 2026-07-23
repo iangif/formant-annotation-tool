@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any
 
 from sqlalchemy import (
+    Boolean,
     DateTime,
     Float,
     Integer,
@@ -42,7 +43,7 @@ from app.database import SessionLocal
 from app.models import Annotation, Batch, Corpus, Token, TokenNote
 
 
-SNAPSHOT_SCHEMA_VERSION = "upload_snapshot_v1"
+SNAPSHOT_SCHEMA_VERSION = "upload_snapshot_v2"
 
 def utcnow_iso() -> str:
     """Return a stable UTC timestamp for manifests."""
@@ -128,6 +129,10 @@ def define_snapshot_tables(metadata: MetaData) -> dict[str, Table]:
         __import__("sqlalchemy").Column("panel_f2", Integer),
         __import__("sqlalchemy").Column("panel_f3", Integer),
         __import__("sqlalchemy").Column("panel_f4", Integer),
+        __import__("sqlalchemy").Column("needs_correction_f1", Boolean, nullable=False),
+        __import__("sqlalchemy").Column("needs_correction_f2", Boolean, nullable=False),
+        __import__("sqlalchemy").Column("needs_correction_f3", Boolean, nullable=False),
+        __import__("sqlalchemy").Column("needs_correction_f4", Boolean, nullable=False),
         __import__("sqlalchemy").Column("annotation_version", String),
         __import__("sqlalchemy").Column("created_at", String),
     )
@@ -306,6 +311,10 @@ def annotation_to_row(annotation: Annotation) -> dict[str, Any]:
         "panel_f2": annotation.panel_f2,
         "panel_f3": annotation.panel_f3,
         "panel_f4": annotation.panel_f4,
+        "needs_correction_f1": annotation.needs_correction_f1,
+        "needs_correction_f2": annotation.needs_correction_f2,
+        "needs_correction_f3": annotation.needs_correction_f3,
+        "needs_correction_f4": annotation.needs_correction_f4,
         "annotation_version": annotation.annotation_version,
         "created_at": iso_datetime(annotation.created_at),
     }
