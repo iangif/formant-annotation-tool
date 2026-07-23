@@ -39,6 +39,10 @@ export const elements = {
     panelF2: document.getElementById("panel-f2"),
     panelF3: document.getElementById("panel-f3"),
     panelF4: document.getElementById("panel-f4"),
+    needsCorrectionF1: document.getElementById("needs-correction-f1"),
+    needsCorrectionF2: document.getElementById("needs-correction-f2"),
+    needsCorrectionF3: document.getElementById("needs-correction-f3"),
+    needsCorrectionF4: document.getElementById("needs-correction-f4"),
 
     notes: document.getElementById("notes"),
     noteSaveIndicator: document.getElementById("note-save-indicator"),

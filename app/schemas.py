@@ -148,6 +148,11 @@ class AnnotationCreate(BaseModel):
     panel_f3: int | None = Field(default=None, ge=MIN_PANEL, le=MAX_PANEL)
     panel_f4: int | None = Field(default=None, ge=MIN_PANEL, le=MAX_PANEL)
 
+    needs_correction_f1: bool = False
+    needs_correction_f2: bool = False
+    needs_correction_f3: bool = False
+    needs_correction_f4: bool = False
+
     @model_validator(mode="after")
     def validate_panel_fields(self) -> "AnnotationCreate":
         """
@@ -165,10 +170,8 @@ class AnnotationCreate(BaseModel):
         bad_token:
             panel fields are optional.
 
-        needs_correction:
-            panel fields are optional, but any provided F1-F4 values are
-            validated and saved. This lets annotators mark a token for future
-            hand correction while preserving the closest candidate panels.
+        Per-formant needs-correction flags are allowed with or without a
+        corresponding panel. A flagged formant with no panel remains blank.
         """
 
         if self.decision == AnnotationDecision.select_panel:
@@ -177,11 +180,23 @@ class AnnotationCreate(BaseModel):
         
         if self.decision == AnnotationDecision.complex:
             panels = [self.panel_f1, self.panel_f2, self.panel_f3, self.panel_f4]
+            correction_flags = [
+                self.needs_correction_f1,
+                self.needs_correction_f2,
+                self.needs_correction_f3,
+                self.needs_correction_f4,
+            ]
 
-            if all(panel is None for panel in panels):
+            if all(panel is None for panel in panels) and not any(correction_flags):
                 raise ValueError(
-                    "At least one of panel_f1 through panel_f4 is required for complex"
+                    "complex requires at least one panel or needs-correction flag"
                 )
+
+        if self.decision == AnnotationDecision.needs_correction:
+            raise ValueError(
+                "needs_correction is a legacy decision. Submit a panel decision "
+                "and use needs_correction_f1 through needs_correction_f4 instead."
+            )
 
         if self.image_source == "alternate":
             if self.fasttrack_params is None:
@@ -230,6 +245,11 @@ class AnnotationRead(BaseModel):
     panel_f2: int | None = None
     panel_f3: int | None = None
     panel_f4: int | None = None
+
+    needs_correction_f1: bool = False
+    needs_correction_f2: bool = False
+    needs_correction_f3: bool = False
+    needs_correction_f4: bool = False
 
     annotation_version: str
     created_at: datetime

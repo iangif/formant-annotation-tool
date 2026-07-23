@@ -266,7 +266,8 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
     Saves one annotation row to the database.
 
     The frontend decides whether the annotation is accept_auto, select_panel,
-    complex, bad_token, or needs_correction.
+    complex, or bad_token. Needs-correction status is stored independently for
+    each formant.
 
     The backend still enforces invariants:
     - token must exist
@@ -274,7 +275,7 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
     - accept_auto always stores the auto_winner_panel
     - select_panel can never duplicate auto_accept
     - complex must contain at least two distinct panel values
-    - needs_correction may optionally preserve panel_f1-panel_f4 values
+    - bad_token clears panels and correction flags
     """
 
     token = get_token_by_id(db, annotation_in.token_id)
@@ -297,7 +298,7 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
         }
     )
 
-    data.setdefault("annotation_version", "v1")
+    data.setdefault("annotation_version", "v2")
 
     winner = token.auto_winner_panel
 
@@ -321,9 +322,17 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
 
     elif annotation_in.decision == AnnotationDecision.complex:
         panels = [annotation_in.panel_f1, annotation_in.panel_f2, annotation_in.panel_f3, annotation_in.panel_f4]
+        correction_flags = [
+            annotation_in.needs_correction_f1,
+            annotation_in.needs_correction_f2,
+            annotation_in.needs_correction_f3,
+            annotation_in.needs_correction_f4,
+        ]
 
-        if all(panel is None for panel in panels):
-            raise ValueError("At least one F1-F4 panel value is required.")
+        if all(panel is None for panel in panels) and not any(correction_flags):
+            raise ValueError(
+                "At least one F1-F4 panel value or needs-correction flag is required."
+            )
 
         if all(panel == winner for panel in panels):
             raise ValueError("complex cannot duplicate accept_auto. Use accept_auto instead.")
@@ -335,17 +344,11 @@ def create_annotation(db: Session, annotation_in: AnnotationCreate) -> Annotatio
 
         data["selected_panel"] = None
 
-    elif annotation_in.decision == AnnotationDecision.needs_correction:
-        panels = [annotation_in.panel_f1, annotation_in.panel_f2, annotation_in.panel_f3, annotation_in.panel_f4]
-        non_null_panels = [panel for panel in panels if panel is not None]
-
-        # Panel values are optional for needs_correction. If all four formants
-        # point to one candidate panel, also store selected_panel as a compact
-        # summary while preserving the per-formant fields.
-        if len(non_null_panels) == 4 and len(set(non_null_panels)) == 1:
-            data["selected_panel"] = non_null_panels[0]
-        else:
-            data["selected_panel"] = None
+    elif annotation_in.decision == AnnotationDecision.bad_token:
+        data["selected_panel"] = None
+        for formant in range(1, 5):
+            data[f"panel_f{formant}"] = None
+            data[f"needs_correction_f{formant}"] = False
 
     latest = latest_annotation_for_token(
         db=db,
