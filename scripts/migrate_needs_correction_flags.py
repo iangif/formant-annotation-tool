@@ -5,8 +5,7 @@ The migration is idempotent and runs automatically from ``start_app.sh`` and
 
     uv run python -m scripts.migrate_needs_correction_flags
 
-Legacy rows retain their closest selected panels. If all four legacy panel
-fields are blank, all four are filled with the token's auto-winner panel. Since
+Legacy rows retain their closest selected panels. Since
 the old decision did not identify a particular formant, all four new correction
 flags are conservatively set to true.
 """
@@ -102,14 +101,6 @@ def migrate_legacy_rows(conn: sqlite3.Connection) -> int:
 
     for row in rows:
         panels = [row[column] for column in PANEL_COLUMNS]
-        if all(panel is None for panel in panels):
-            winner = row["auto_winner_panel"]
-            if winner is None:
-                raise RuntimeError(
-                    f"Legacy annotation {row['id']} has no panels and its token "
-                    "has no auto_winner_panel."
-                )
-            panels = [int(winner)] * 4
 
         decision, selected_panel = derive_decision(
             panels,
