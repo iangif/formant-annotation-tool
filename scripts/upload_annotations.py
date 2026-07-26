@@ -43,7 +43,7 @@ from app.database import SessionLocal
 from app.models import Annotation, Batch, Corpus, Token, TokenNote
 
 
-SNAPSHOT_SCHEMA_VERSION = "upload_snapshot_v2"
+SNAPSHOT_SCHEMA_VERSION = "upload_snapshot_v3"
 
 def utcnow_iso() -> str:
     """Return a stable UTC timestamp for manifests."""
@@ -114,6 +114,7 @@ def define_snapshot_tables(metadata: MetaData) -> dict[str, Table]:
         __import__("sqlalchemy").Column("alignment_comment", Text),
         __import__("sqlalchemy").Column("auto_winner_panel", Integer),
         __import__("sqlalchemy").Column("n_candidates", Integer),
+        __import__("sqlalchemy").Column("max_plotting_frequency", Float),
         __import__("sqlalchemy").Column("candidates_pickle_path", String),
     )
 
@@ -295,6 +296,7 @@ def token_to_row(token: Token, corpus_name: str, batch_name: str) -> dict[str, A
         "alignment_comment": token.alignment_comment,
         "auto_winner_panel": token.auto_winner_panel,
         "n_candidates": token.n_candidates,
+        "max_plotting_frequency": token.max_plotting_frequency,
         "candidates_pickle_path": token.candidates_pickle_path,
     }
 

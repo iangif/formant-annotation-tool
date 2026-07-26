@@ -18,6 +18,7 @@ from sqlalchemy import select
 from app.config import ANNOTATOR_ID, CORPORA_DIR
 from app.database import Base, SessionLocal, engine
 from app.models import Assignment, Batch, Corpus, Token
+from scripts.migrate_token_rendering_metadata import migrate_database, resolve_db_path
 from scripts.utils import empty_to_none
 
 def to_float(value: str | int | float | None) -> float | None:
@@ -73,6 +74,7 @@ def fasttrack_params_for_gender(config: dict, gender: str | None) -> dict:
         "min_max_formant": to_float(params.get("min_max_formant")),
         "max_max_formant": to_float(params.get("max_max_formant")),
         "max_number_of_formants": to_float(params.get("max_number_of_formants")),
+        "max_plotting_frequency": to_float(params.get("max_plotting_frequency")),
         "n_formants": int(config["n_formants"]) if config.get("n_formants") is not None else None,
     }
 
@@ -186,6 +188,7 @@ def token_values(
         "max_max_formant": fasttrack_params["max_max_formant"],
         "n_formants": fasttrack_params["n_formants"],
         "max_number_of_formants": fasttrack_params["max_number_of_formants"],
+        "max_plotting_frequency": fasttrack_params["max_plotting_frequency"],
     }
 
 def upsert_token(db, values: dict) -> None:
@@ -258,6 +261,7 @@ def main() -> None:
     if ANNOTATOR_ID == "unknown":
         raise RuntimeError("Set ANNOTATOR_ID in .env before syncing the database.")
 
+    migrate_database(resolve_db_path(None))
     Base.metadata.create_all(bind=engine)
 
     batch_dirs = synced_batch_dirs()
