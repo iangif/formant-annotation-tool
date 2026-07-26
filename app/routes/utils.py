@@ -17,6 +17,7 @@ def token_to_read(token: Token) -> TokenRead:
         min_max_formant=token.min_max_formant,
         max_max_formant=token.max_max_formant,
         n_formants=token.n_formants,
+        max_plotting_frequency=token.max_plotting_frequency,
         n_candidates=token.n_candidates,
         auto_winner_panel=token.auto_winner_panel,
         image_url=f"/api/files/tokens/{token.token_id}/image",

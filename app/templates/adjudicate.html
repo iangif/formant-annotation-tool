@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Formant Conflict Browser</title>
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="stylesheet" href="/static/css/adjudicate.css">
+</head>
+<body>
+    <main class="container-fluid py-3">
+        <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+            <div>
+                <h1 class="h3 mb-1">Conflict Browser</h1>
+                <p class="text-muted mb-0">
+                    Review current conflicting annotations. Saving decisions is
+                    intentionally disabled in this first deliverable.
+                </p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <label for="batch-select" class="form-label mb-0 fw-semibold">
+                    Corpus / batch
+                </label>
+                <select id="batch-select" class="form-select" disabled>
+                    <option>Loading conflicts…</option>
+                </select>
+            </div>
+        </header>
+
+        <div id="status-alert" class="alert alert-info py-2" role="status">
+            Loading conflict batches…
+        </div>
+
+        <section class="browser-layout" aria-label="Adjudication conflict browser">
+            <aside class="card conflict-list-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">Conflicts</span>
+                    <span id="conflict-count" class="badge text-bg-secondary">0</span>
+                </div>
+                <div id="conflict-list" class="list-group list-group-flush overflow-auto"></div>
+            </aside>
+
+            <section class="detail-panel">
+                <div class="card mb-3">
+                    <div class="card-header d-flex flex-wrap justify-content-between gap-2">
+                        <div>
+                            <h2 id="token-title" class="h5 mb-1">Select a conflict</h2>
+                            <div id="token-subtitle" class="small text-muted"></div>
+                        </div>
+                        <div>
+                            <button id="previous-btn" class="btn btn-outline-secondary btn-sm" disabled>
+                                Previous
+                            </button>
+                            <button id="next-btn" class="btn btn-outline-secondary btn-sm" disabled>
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body spectrogram-area">
+                        <div id="image-placeholder" class="text-muted text-center">
+                            Candidate image will appear here.
+                        </div>
+                        <img
+                            id="candidate-image"
+                            class="candidate-image d-none"
+                            alt="FastTrack candidate spectrogram grid"
+                        >
+                    </div>
+                    <div id="audio-container" class="card-footer d-none">
+                        <audio id="token-audio" controls preload="none"></audio>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header fw-semibold">Token metadata</div>
+                    <div id="metadata-grid" class="card-body metadata-grid text-muted">
+                        Select a conflict to inspect its metadata.
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header fw-semibold">Current annotations</div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Annotator</th>
+                                    <th>Decision</th>
+                                    <th>F1</th>
+                                    <th>F2</th>
+                                    <th>F3</th>
+                                    <th>F4</th>
+                                    <th>Note</th>
+                                </tr>
+                            </thead>
+                            <tbody id="annotation-rows">
+                                <tr>
+                                    <td colspan="7" class="text-muted text-center py-3">
+                                        Select a conflict to view annotations.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <script type="module" src="/static/js/adjudicate/main.js"></script>
+</body>
+</html>

@@ -40,6 +40,7 @@ class TokenRead(BaseModel):
     min_max_formant: float | None = None
     max_max_formant: float | None = None
     n_formants: int | None = None
+    max_plotting_frequency: float | None = None
 
     n_candidates: int
     auto_winner_panel: int
