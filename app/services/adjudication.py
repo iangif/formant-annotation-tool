@@ -77,10 +77,20 @@ def _candidate_pickle_path(token: dict) -> Path:
     )
 
 
+def _resolved_plotting_frequency(token: dict) -> float:
+    """Temporarily supply a ceiling for snapshots lacking this metadata."""
+
+    value = token.get("max_plotting_frequency")
+    if value is None:
+        return 5500.0 # DEFAULT MAX PLOTTING FREQUENCY
+
+    return float(value)
+
+
 def _has_valid_plotting_frequency(token: dict) -> bool:
     try:
-        return float(token["max_plotting_frequency"]) > 0
-    except (KeyError, TypeError, ValueError):
+        return _resolved_plotting_frequency(token) > 0
+    except (TypeError, ValueError):
         return False
 
 
@@ -98,6 +108,7 @@ def conflict_detail(*, token_id: str) -> dict:
 
     return {
         **token,
+        "max_plotting_frequency": _resolved_plotting_frequency(token),
         "image_url": (
             f"/api/adjudication/media/image?token_id={encoded_id}"
             if image_path.is_file()
@@ -137,7 +148,7 @@ def _render_track_preview(*, token: dict, annotation: dict) -> bytes:
         annotation,
         token,
         pickle_path.parent,
-        maximum_frequency=token.get("max_plotting_frequency"),
+        maximum_frequency=_resolved_plotting_frequency(token),
     )
 
 
