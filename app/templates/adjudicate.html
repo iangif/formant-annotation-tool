@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Formant Conflict Browser</title>
+    <title>Formant Adjudication Workspace</title>
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet"
@@ -15,10 +15,10 @@
     <main class="container-fluid py-3">
         <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
             <div>
-                <h1 class="h3 mb-1">Conflict Browser</h1>
+                <h1 class="h3 mb-1">Adjudication Workspace</h1>
                 <p class="text-muted mb-0">
-                    Review current conflicting annotations. Saving decisions is
-                    intentionally disabled in this first deliverable.
+                    Compare current annotations and prepare an interactive
+                    draft. Drafts are not saved in this deliverable.
                 </p>
             </div>
             <div class="d-flex align-items-center gap-2">
@@ -35,7 +35,7 @@
             Loading conflict batches…
         </div>
 
-        <section class="browser-layout" aria-label="Adjudication conflict browser">
+        <section class="browser-layout" aria-label="Adjudication conflict workspace">
             <aside class="card conflict-list-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span class="fw-semibold">Conflicts</span>
@@ -51,7 +51,25 @@
                             <h2 id="token-title" class="h5 mb-1">Select a conflict</h2>
                             <div id="token-subtitle" class="small text-muted"></div>
                         </div>
-                        <div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Comparison view">
+                                <button
+                                    id="candidate-view-btn"
+                                    type="button"
+                                    class="btn btn-primary"
+                                    aria-pressed="true"
+                                >
+                                    Candidate grid
+                                </button>
+                                <button
+                                    id="tracks-view-btn"
+                                    type="button"
+                                    class="btn btn-outline-primary"
+                                    aria-pressed="false"
+                                >
+                                    Selected tracks
+                                </button>
+                            </div>
                             <button id="previous-btn" class="btn btn-outline-secondary btn-sm" disabled>
                                 Previous
                             </button>
@@ -60,18 +78,121 @@
                             </button>
                         </div>
                     </div>
-                    <div class="card-body spectrogram-area">
-                        <div id="image-placeholder" class="text-muted text-center">
-                            Candidate image will appear here.
+                    <div id="candidate-view" class="card-body comparison-view">
+                        <div class="spectrogram-area">
+                            <div id="image-placeholder" class="text-muted text-center">
+                                Candidate image will appear here.
+                            </div>
+                            <div id="candidate-grid-wrapper" class="candidate-grid-wrapper d-none">
+                                <img
+                                    id="candidate-image"
+                                    class="candidate-image"
+                                    alt="FastTrack candidate spectrogram grid"
+                                >
+                                <div
+                                    id="candidate-overlay-layer"
+                                    class="candidate-overlay-layer"
+                                    aria-label="Candidate panel selections"
+                                ></div>
+                            </div>
                         </div>
-                        <img
-                            id="candidate-image"
-                            class="candidate-image d-none"
-                            alt="FastTrack candidate spectrogram grid"
-                        >
+                        <div id="annotator-legend" class="annotator-legend mt-3"></div>
+                        <div
+                            id="unplaced-correction-alert"
+                            class="alert alert-warning py-2 mt-3 mb-0 d-none"
+                            role="note"
+                        ></div>
+                    </div>
+                    <div id="tracks-view" class="card-body comparison-view d-none">
+                        <p class="small text-muted mb-3">
+                            Each card uses the same clean spectrogram and the
+                            token's stored plotting-frequency ceiling. Dashed
+                            formant lines are flagged as needing correction.
+                        </p>
+                        <div id="track-comparison-grid" class="track-comparison-grid"></div>
                     </div>
                     <div id="audio-container" class="card-footer d-none">
                         <audio id="token-audio" controls preload="none"></audio>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <span class="fw-semibold">Unsaved adjudication draft</span>
+                            <span class="badge text-bg-warning ms-1">browser only</span>
+                        </div>
+                        <button
+                            id="reset-draft-btn"
+                            type="button"
+                            class="btn btn-outline-secondary btn-sm"
+                            disabled
+                        >
+                            Reset draft
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted mb-3">
+                            Focus an F1–F4 field, then click a candidate panel
+                            to change only that formant. “Use annotation” copies
+                            all four panels and correction flags.
+                        </p>
+                        <div id="draft-formants" class="draft-formants">
+                            {% for number in range(1, 5) %}
+                            <div class="draft-formant" data-formant="{{ number }}">
+                                <label
+                                    for="draft-panel-f{{ number }}"
+                                    class="form-label fw-semibold"
+                                >
+                                    F{{ number }} panel
+                                </label>
+                                <input
+                                    id="draft-panel-f{{ number }}"
+                                    class="form-control draft-panel-input"
+                                    type="number"
+                                    min="0"
+                                    max="19"
+                                    step="1"
+                                    inputmode="numeric"
+                                    data-formant="{{ number }}"
+                                    disabled
+                                >
+                                <div class="form-check mt-2">
+                                    <input
+                                        id="draft-correction-f{{ number }}"
+                                        class="form-check-input draft-correction-input"
+                                        type="checkbox"
+                                        data-formant="{{ number }}"
+                                        disabled
+                                    >
+                                    <label
+                                        for="draft-correction-f{{ number }}"
+                                        class="form-check-label small"
+                                    >
+                                        Needs correction
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="mt-3">
+                            <label for="draft-note" class="form-label fw-semibold">
+                                Adjudication note
+                            </label>
+                            <textarea
+                                id="draft-note"
+                                class="form-control"
+                                rows="2"
+                                disabled
+                            ></textarea>
+                        </div>
+                        <div
+                            id="draft-status"
+                            class="small text-muted mt-3"
+                            role="status"
+                        >
+                            Select a conflict to begin a draft.
+                        </div>
                     </div>
                 </div>
 
@@ -95,11 +216,12 @@
                                     <th>F3</th>
                                     <th>F4</th>
                                     <th>Note</th>
+                                    <th><span class="visually-hidden">Draft action</span></th>
                                 </tr>
                             </thead>
                             <tbody id="annotation-rows">
                                 <tr>
-                                    <td colspan="7" class="text-muted text-center py-3">
+                                    <td colspan="8" class="text-muted text-center py-3">
                                         Select a conflict to view annotations.
                                     </td>
                                 </tr>

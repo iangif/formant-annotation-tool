@@ -1,8 +1,8 @@
-"""Pydantic response models for the read-only adjudication browser."""
+"""Pydantic models for adjudication comparison and unsaved draft previews."""
 
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ConflictBatchRead(BaseModel):
@@ -67,4 +67,19 @@ class ConflictDetailRead(BaseModel):
     max_plotting_frequency: float | None = None
     image_url: str | None = None
     audio_url: str | None = None
+    track_preview_available: bool
     annotations: list[ConflictAnnotationRead]
+
+
+class DraftTrackPreviewRequest(BaseModel):
+    """Panel choices sent only for rendering; this model is never persisted."""
+
+    token_id: str = Field(min_length=1)
+    panel_f1: int | None = Field(default=None, ge=0)
+    panel_f2: int | None = Field(default=None, ge=0)
+    panel_f3: int | None = Field(default=None, ge=0)
+    panel_f4: int | None = Field(default=None, ge=0)
+    needs_correction_f1: bool = False
+    needs_correction_f2: bool = False
+    needs_correction_f3: bool = False
+    needs_correction_f4: bool = False

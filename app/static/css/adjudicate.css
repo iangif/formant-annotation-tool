@@ -28,6 +28,10 @@ body {
     min-width: 0;
 }
 
+.comparison-view {
+    min-width: 0;
+}
+
 .spectrogram-area {
     min-height: 300px;
     display: flex;
@@ -37,9 +41,185 @@ body {
     background: #fff;
 }
 
+.candidate-grid-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 1400px;
+    line-height: 0;
+}
+
 .candidate-image {
-    max-width: 100%;
+    display: block;
+    width: 100%;
     height: auto;
+}
+
+.candidate-overlay-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.candidate-panel-target {
+    position: absolute;
+    padding: 0.2rem;
+    border: 2px solid transparent;
+    border-radius: 0.2rem;
+    background: transparent;
+    color: inherit;
+    line-height: 1.15;
+    text-align: left;
+    overflow: hidden;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.candidate-panel-target:hover,
+.candidate-panel-target:focus-visible {
+    border-color: rgba(13, 110, 253, 0.95);
+    background: rgba(13, 110, 253, 0.08);
+    outline: none;
+}
+
+.candidate-panel-target.has-draft-selection {
+    box-shadow: inset 0 0 0 3px #ffc107;
+}
+
+.panel-number {
+    display: inline-block;
+    min-width: 1.4rem;
+    padding: 0.08rem 0.25rem;
+    border-radius: 999px;
+    color: #fff;
+    background: rgba(33, 37, 41, 0.78);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.panel-badges {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.12rem;
+    margin-top: 0.15rem;
+}
+
+.panel-selection-badge {
+    max-width: 100%;
+    padding: 0.12rem 0.3rem;
+    border: 1px solid var(--annotator-color);
+    border-radius: 0.25rem;
+    background: color-mix(in srgb, var(--annotator-color) 16%, white);
+    color: #212529;
+    font-size: clamp(0.55rem, 0.8vw, 0.72rem);
+    font-weight: 700;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.panel-selection-badge.is-draft {
+    --annotator-color: #d39e00;
+    background: #fff3cd;
+}
+
+.annotator-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.75rem;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+}
+
+.legend-swatch {
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 0.2rem;
+    background: var(--annotator-color);
+}
+
+.track-comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1rem;
+}
+
+.track-preview-card {
+    min-width: 0;
+    border: 1px solid #dee2e6;
+    border-radius: 0.4rem;
+    background: #fff;
+    overflow: hidden;
+}
+
+.track-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+}
+
+.track-preview-image {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.track-preview-message {
+    display: flex;
+    min-height: 230px;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    color: #6c757d;
+    text-align: center;
+}
+
+.draft-formants {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(130px, 1fr));
+    gap: 0.75rem;
+}
+
+.draft-formant {
+    padding: 0.75rem;
+    border: 2px solid #dee2e6;
+    border-radius: 0.4rem;
+    transition: border-color 100ms ease, background-color 100ms ease;
+}
+
+.draft-formant.is-focused {
+    border-color: #0d6efd;
+    background: #f0f6ff;
+}
+
+.draft-formant.is-invalid {
+    border-color: #dc3545;
+    background: #fff5f5;
+}
+
+.annotator-key {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.annotator-key::before {
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 50%;
+    background: var(--annotator-color);
+    content: "";
 }
 
 .metadata-grid {
@@ -83,5 +263,19 @@ body {
     .conflict-list-card {
         position: static;
         max-height: 280px;
+    }
+
+    .draft-formants {
+        grid-template-columns: repeat(2, minmax(130px, 1fr));
+    }
+}
+
+@media (max-width: 520px) {
+    .draft-formants {
+        grid-template-columns: 1fr;
+    }
+
+    .track-comparison-grid {
+        grid-template-columns: 1fr;
     }
 }

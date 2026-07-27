@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from formants_export.adjudication_queries import (
     CentralDatabaseError,
@@ -14,10 +14,13 @@ from app.adjudication_schemas import (
     ConflictBatchRead,
     ConflictDetailRead,
     ConflictSummaryRead,
+    DraftTrackPreviewRequest,
 )
 from app.services import adjudication
 
+
 router = APIRouter(prefix="/adjudication", tags=["adjudication"])
+
 
 def _service_error(error: Exception) -> HTTPException:
     if isinstance(error, ConflictNotFoundError):
@@ -40,6 +43,7 @@ def _service_error(error: Exception) -> HTTPException:
         detail=str(error),
     )
 
+
 @router.get("/batches", response_model=list[ConflictBatchRead])
 def get_conflict_batches() -> list[dict]:
     """List corpus/batch pairs that have at least one current conflict."""
@@ -48,6 +52,7 @@ def get_conflict_batches() -> list[dict]:
         return adjudication.conflict_batches()
     except CentralDatabaseError as error:
         raise _service_error(error) from error
+
 
 @router.get("/conflicts", response_model=list[ConflictSummaryRead])
 def get_conflicts(
@@ -61,6 +66,7 @@ def get_conflicts(
     except CentralDatabaseError as error:
         raise _service_error(error) from error
 
+
 @router.get("/conflict", response_model=ConflictDetailRead)
 def get_conflict_detail(
     token_id: str = Query(min_length=1),
@@ -71,6 +77,7 @@ def get_conflict_detail(
         return adjudication.conflict_detail(token_id=token_id)
     except (CentralDatabaseError, ConflictNotFoundError, ValueError) as error:
         raise _service_error(error) from error
+
 
 @router.get("/media/{media_kind}")
 def get_conflict_media(
@@ -94,3 +101,45 @@ def get_conflict_media(
 
     media_type = "image/png" if media_kind == "image" else "audio/wav"
     return FileResponse(path=path, media_type=media_type, filename=path.name)
+
+
+def _png_response(content: bytes) -> Response:
+    """Return a generated preview that browsers must not treat as persisted."""
+
+    return Response(
+        content=content,
+        media_type="image/png",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@router.get("/track-preview")
+def get_annotation_track_preview(
+    token_id: str = Query(min_length=1),
+    annotator_id: str = Query(min_length=1),
+) -> Response:
+    """Render one current annotation over a clean token spectrogram."""
+
+    try:
+        content = adjudication.annotation_track_preview(
+            token_id=token_id,
+            annotator_id=annotator_id,
+        )
+    except Exception as error:
+        raise _service_error(error) from error
+    return _png_response(content)
+
+
+@router.post("/draft-preview")
+def post_draft_track_preview(
+    payload: DraftTrackPreviewRequest,
+) -> Response:
+    """Render an unsaved browser draft without storing any decision."""
+
+    try:
+        content = adjudication.draft_track_preview(
+            payload=payload.model_dump(),
+        )
+    except Exception as error:
+        raise _service_error(error) from error
+    return _png_response(content)
