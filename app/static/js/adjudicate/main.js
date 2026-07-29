@@ -34,8 +34,10 @@ const state = {
     activeView: "candidate",
     focusedFormant: 1,
     drafts: new Map(),
+    automaticProposals: new Map(),
     detailRequestVersion: 0,
     previewRequestVersion: 0,
+    proposalRequestVersion: 0,
     previewTimer: null,
     draftPreviewUrl: null,
 };
@@ -69,7 +71,15 @@ const elements = {
     draftCorrectionInputs: [...document.querySelectorAll(".draft-correction-input")],
     draftNote: document.querySelector("#draft-note"),
     draftStatus: document.querySelector("#draft-status"),
+    draftResolutionType: document.querySelector("#draft-resolution-type"),
     resetDraftButton: document.querySelector("#reset-draft-btn"),
+    averageTracksButton: document.querySelector("#average-tracks-btn"),
+    randomTrackButton: document.querySelector("#random-track-btn"),
+    randomSeedInput: document.querySelector("#automatic-random-seed"),
+    automaticProposalStatus: document.querySelector("#automatic-proposal-status"),
+    useAutomaticProposalButton: document.querySelector(
+        "#use-automatic-proposal-btn",
+    ),
 };
 
 
@@ -111,6 +121,18 @@ async function apiPostImage(path, payload) {
         throw await responseError(response);
     }
     return response.blob();
+}
+
+async function apiPostJson(path, payload) {
+    const response = await fetch(path, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+        throw await responseError(response);
+    }
+    return response.json();
 }
 
 function showStatus(message, kind = "info") {
@@ -297,6 +319,12 @@ function renderAnnotations(conflict) {
 
 function blankDraft() {
     return {
+        resolution_type: "manual_panels",
+        resolution_recipe: null,
+        source_fingerprint: null,
+        automatic_summary: null,
+        random_seed: null,
+        automatic_preview_url: null,
         panel_f1: null,
         panel_f2: null,
         panel_f3: null,
@@ -331,6 +359,17 @@ function readPanelInput(input) {
 }
 
 function draftValidation(draft) {
+    if (
+        ["average_tracks", "random_track"].includes(draft.resolution_type)
+        && draft.resolution_recipe
+    ) {
+        return {
+            valid: true,
+            errors: new Map(),
+            message: `${draft.automatic_summary} Draft remains unsaved.`,
+        };
+    }
+
     const errors = new Map();
     const candidateCount = Number.isInteger(state.currentConflict?.n_candidates)
         ? state.currentConflict.n_candidates
@@ -370,7 +409,9 @@ function draftValidation(draft) {
     return {
         valid: true,
         errors,
-        message: "Draft is valid and remains unsaved.",
+        message: draft.resolution_type === "choose_annotation"
+            ? "Selected annotation is valid and remains unsaved."
+            : "Manual-panel draft is valid and remains unsaved.",
     };
 }
 
@@ -383,6 +424,28 @@ function setDraftControlsEnabled(enabled) {
         element.disabled = !enabled;
     });
     elements.resetDraftButton.disabled = !enabled;
+    const previewsAvailable = enabled && Boolean(
+        state.currentConflict?.track_preview_available,
+    );
+    elements.averageTracksButton.disabled = !previewsAvailable;
+    elements.randomTrackButton.disabled = !previewsAvailable;
+    elements.randomSeedInput.disabled = !previewsAvailable;
+}
+
+function displayResolutionType(resolutionType) {
+    return {
+        manual_panels: "manual panels",
+        choose_annotation: "chosen annotation",
+        average_tracks: "average tracks",
+        random_track: "random track",
+    }[resolutionType] || resolutionType;
+}
+
+function renderDraftResolutionType() {
+    const draft = currentDraft();
+    elements.draftResolutionType.textContent = displayResolutionType(
+        draft?.resolution_type || "manual_panels",
+    );
 }
 
 function writeDraftToControls() {
@@ -399,6 +462,7 @@ function writeDraftToControls() {
         input.checked = Boolean(draft[`needs_correction_f${number}`]);
     }
     elements.draftNote.value = draft.note;
+    renderDraftResolutionType();
     setFocusedFormant(state.focusedFormant);
 }
 
@@ -453,12 +517,23 @@ function useAnnotation(annotation) {
     if (!draft) {
         return;
     }
+    releaseDraftAutomaticPreview(draft);
     for (let number = 1; number <= 4; number += 1) {
         draft[`panel_f${number}`] = annotation[`panel_f${number}`];
         draft[`needs_correction_f${number}`] = Boolean(
             annotation[`needs_correction_f${number}`],
         );
     }
+    draft.resolution_type = "choose_annotation";
+    draft.resolution_recipe = {
+        type: "selected_annotation",
+        method: "choose_annotation",
+        source_annotation_ids: [annotation.central_annotation_id],
+        selected_annotation_id: annotation.central_annotation_id,
+    };
+    draft.source_fingerprint = null;
+    draft.automatic_summary = null;
+    draft.random_seed = null;
     writeDraftToControls();
     draftChanged();
 }
@@ -467,16 +542,189 @@ function resetDraft() {
     if (!state.currentConflict) {
         return;
     }
+    releaseDraftAutomaticPreview(currentDraft());
     state.drafts.set(state.currentConflict.token_id, blankDraft());
     writeDraftToControls();
     draftChanged();
 }
 
 function draftChanged() {
+    renderDraftResolutionType();
     renderCandidateOverlays();
     renderUnplacedCorrectionWarning();
     const validation = updateDraftValidation();
     scheduleDraftPreview(validation);
+}
+
+function changeDraftToManualPanels() {
+    const draft = currentDraft();
+    if (!draft) {
+        return;
+    }
+    releaseDraftAutomaticPreview(draft);
+    draft.resolution_type = "manual_panels";
+    draft.resolution_recipe = {
+        type: "selected_panels",
+        method: "manual_panels",
+        source_annotation_ids: [],
+    };
+    draft.source_fingerprint = null;
+    draft.automatic_summary = null;
+    draft.random_seed = null;
+}
+
+
+// ---------------------------------------------------------------------------
+// Automatic random/average proposals
+// ---------------------------------------------------------------------------
+
+function currentAutomaticProposal() {
+    if (!state.currentConflict) {
+        return null;
+    }
+    return state.automaticProposals.get(state.currentConflict.token_id) || null;
+}
+
+function releaseAutomaticProposal(proposal) {
+    if (proposal?.previewUrl) {
+        URL.revokeObjectURL(proposal.previewUrl);
+    }
+}
+
+function releaseDraftAutomaticPreview(draft) {
+    if (draft?.automatic_preview_url) {
+        URL.revokeObjectURL(draft.automatic_preview_url);
+        draft.automatic_preview_url = null;
+    }
+}
+
+function renderAutomaticProposalStatus() {
+    const proposal = currentAutomaticProposal();
+    if (!state.currentConflict) {
+        elements.automaticProposalStatus.textContent =
+            "Select a conflict to generate a proposal.";
+        elements.useAutomaticProposalButton.classList.add("d-none");
+        return;
+    }
+    if (!state.currentConflict.track_preview_available) {
+        elements.automaticProposalStatus.textContent =
+            "Automatic previews require the token pickle and plotting frequency.";
+        elements.useAutomaticProposalButton.classList.add("d-none");
+        return;
+    }
+    if (!proposal) {
+        elements.automaticProposalStatus.textContent =
+            "Choose a method to generate an unsaved proposal.";
+        elements.useAutomaticProposalButton.classList.add("d-none");
+        return;
+    }
+
+    const excluded = proposal.metadata.excluded_annotations;
+    const exclusionText = excluded.length === 0
+        ? "No displayed annotations were excluded."
+        : `Excluded: ${excluded.map(
+            (source) => `${source.annotator_id} (${source.reason})`,
+        ).join("; ")}.`;
+    elements.automaticProposalStatus.textContent =
+        `${proposal.metadata.summary} ${exclusionText}`;
+    elements.useAutomaticProposalButton.classList.remove("d-none");
+}
+
+function proposalRequestPayload(method) {
+    const seed = Number.parseInt(elements.randomSeedInput.value, 10);
+    return {
+        token_id: state.currentConflict.token_id,
+        method,
+        random_seed: Number.isInteger(seed) ? seed : 0,
+        include_needs_correction: false,
+    };
+}
+
+async function generateAutomaticProposal(method) {
+    if (!state.currentConflict?.track_preview_available) {
+        renderAutomaticProposalStatus();
+        return;
+    }
+
+    state.proposalRequestVersion += 1;
+    const requestVersion = state.proposalRequestVersion;
+    const tokenId = state.currentConflict.token_id;
+    const payload = proposalRequestPayload(method);
+    elements.averageTracksButton.disabled = true;
+    elements.randomTrackButton.disabled = true;
+    elements.automaticProposalStatus.textContent =
+        `Building ${displayResolutionType(method)} proposal…`;
+    elements.useAutomaticProposalButton.classList.add("d-none");
+
+    try {
+        const [metadata, previewBlob] = await Promise.all([
+            apiPostJson("/api/adjudication/automatic-proposal", payload),
+            apiPostImage("/api/adjudication/automatic-preview", payload),
+        ]);
+        if (
+            requestVersion !== state.proposalRequestVersion
+            || state.currentConflict?.token_id !== tokenId
+        ) {
+            return;
+        }
+
+        const previous = state.automaticProposals.get(tokenId);
+        releaseAutomaticProposal(previous);
+        state.automaticProposals.set(tokenId, {
+            metadata,
+            previewBlob,
+            previewUrl: URL.createObjectURL(previewBlob),
+        });
+        renderAutomaticProposalStatus();
+        renderTrackCards(state.currentConflict);
+        setComparisonView("tracks");
+    } catch (error) {
+        if (requestVersion === state.proposalRequestVersion) {
+            elements.automaticProposalStatus.textContent =
+                `Automatic proposal error: ${error.message}`;
+            elements.useAutomaticProposalButton.classList.add("d-none");
+        }
+    } finally {
+        if (
+            requestVersion === state.proposalRequestVersion
+            && state.currentConflict?.token_id === tokenId
+        ) {
+            setDraftControlsEnabled(true);
+        }
+    }
+}
+
+function useAutomaticProposal() {
+    const proposal = currentAutomaticProposal();
+    const draft = currentDraft();
+    if (!proposal || !draft) {
+        return;
+    }
+
+    const metadata = proposal.metadata;
+    releaseDraftAutomaticPreview(draft);
+    draft.resolution_type = metadata.resolution_type;
+    draft.resolution_recipe = metadata.recipe;
+    draft.source_fingerprint = metadata.source_fingerprint;
+    draft.automatic_summary = metadata.summary;
+    draft.random_seed = metadata.random_seed;
+    draft.automatic_preview_url = URL.createObjectURL(proposal.previewBlob);
+
+    const selectedId = metadata.recipe.selected_annotation_id;
+    const selected = state.currentConflict.annotations.find(
+        (annotation) => annotation.central_annotation_id === selectedId,
+    );
+    for (let number = 1; number <= 4; number += 1) {
+        draft[`panel_f${number}`] = selected
+            ? selected[`panel_f${number}`]
+            : null;
+        draft[`needs_correction_f${number}`] = selected
+            ? Boolean(selected[`needs_correction_f${number}`])
+            : false;
+    }
+
+    writeDraftToControls();
+    draftChanged();
 }
 
 
@@ -549,6 +797,7 @@ function selectPanelForFocusedFormant(panel) {
     if (!draft) {
         return;
     }
+    changeDraftToManualPanels();
     const number = state.focusedFormant;
     draft[`panel_f${number}`] = panel;
     const input = elements.draftPanelInputs.find(
@@ -766,6 +1015,30 @@ function renderTrackCards(conflict) {
         elements.trackComparisonGrid.append(card);
     });
 
+    const proposal = currentAutomaticProposal();
+    if (proposal) {
+        const useButton = document.createElement("button");
+        useButton.type = "button";
+        useButton.className = "btn btn-primary btn-sm";
+        useButton.textContent = "Use proposal";
+        useButton.addEventListener("click", useAutomaticProposal);
+
+        const title =
+            `Proposal: ${displayResolutionType(proposal.metadata.resolution_type)}`;
+        const {card, body} = previewCard(title, "#0d6efd", useButton);
+        card.classList.add("is-proposal");
+        previewImage(
+            body,
+            proposal.previewUrl,
+            `${displayResolutionType(proposal.metadata.resolution_type)} proposal`,
+        );
+        const details = document.createElement("p");
+        details.className = "proposal-details px-3 pb-3";
+        details.textContent = proposal.metadata.summary;
+        card.append(details);
+        elements.trackComparisonGrid.append(card);
+    }
+
     const draftCard = previewCard("Unsaved draft", DRAFT_COLOR);
     draftCard.card.dataset.previewKind = "draft";
     elements.trackComparisonGrid.append(draftCard.card);
@@ -793,11 +1066,22 @@ function updateDraftPreviewCard(message = null) {
     const validation = state.currentConflict && currentDraft()
         ? draftValidation(currentDraft())
         : {valid: false, message: "Select a conflict to prepare a draft."};
+    const draft = state.currentConflict ? currentDraft() : null;
 
     if (message) {
         previewMessage(body, message);
     } else if (!validation.valid) {
         previewMessage(body, validation.message);
+    } else if (
+        draft
+        && ["average_tracks", "random_track"].includes(draft.resolution_type)
+        && draft.automatic_preview_url
+    ) {
+        previewImage(
+            body,
+            draft.automatic_preview_url,
+            `Unsaved ${displayResolutionType(draft.resolution_type)} draft`,
+        );
     } else if (!state.currentConflict.track_preview_available) {
         previewMessage(
             body,
@@ -814,6 +1098,16 @@ function scheduleDraftPreview(validation = updateDraftValidation()) {
     window.clearTimeout(state.previewTimer);
     state.previewRequestVersion += 1;
     releaseDraftPreviewUrl();
+
+    const draft = currentDraft();
+    if (
+        validation.valid
+        && draft
+        && ["average_tracks", "random_track"].includes(draft.resolution_type)
+    ) {
+        updateDraftPreviewCard();
+        return;
+    }
 
     if (!validation.valid || !state.currentConflict?.track_preview_available) {
         updateDraftPreviewCard();
@@ -933,6 +1227,7 @@ function renderConflict(conflict) {
     writeDraftToControls();
     renderCandidateOverlays();
     renderUnplacedCorrectionWarning();
+    renderAutomaticProposalStatus();
     renderTrackCards(conflict);
     scheduleDraftPreview(updateDraftValidation());
 }
@@ -1028,6 +1323,16 @@ elements.tracksViewButton.addEventListener("click", () => {
     setComparisonView("tracks");
 });
 elements.resetDraftButton.addEventListener("click", resetDraft);
+elements.averageTracksButton.addEventListener("click", () => {
+    generateAutomaticProposal("average_tracks");
+});
+elements.randomTrackButton.addEventListener("click", () => {
+    generateAutomaticProposal("random_track");
+});
+elements.useAutomaticProposalButton.addEventListener(
+    "click",
+    useAutomaticProposal,
+);
 
 for (const input of elements.draftPanelInputs) {
     input.addEventListener("focus", () => {
@@ -1036,12 +1341,14 @@ for (const input of elements.draftPanelInputs) {
     });
     input.addEventListener("input", () => {
         readControlsIntoDraft();
+        changeDraftToManualPanels();
         draftChanged();
     });
 }
 for (const input of elements.draftCorrectionInputs) {
     input.addEventListener("change", () => {
         readControlsIntoDraft();
+        changeDraftToManualPanels();
         draftChanged();
     });
 }
@@ -1060,6 +1367,10 @@ elements.image.addEventListener("error", () => {
     elements.imagePlaceholder.textContent = "Candidate image could not be loaded.";
     elements.imagePlaceholder.classList.remove("d-none");
 });
-window.addEventListener("beforeunload", releaseDraftPreviewUrl);
+window.addEventListener("beforeunload", () => {
+    releaseDraftPreviewUrl();
+    state.automaticProposals.forEach(releaseAutomaticProposal);
+    state.drafts.forEach(releaseDraftAutomaticPreview);
+});
 
 initialize();

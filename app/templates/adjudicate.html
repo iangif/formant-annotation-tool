@@ -121,6 +121,12 @@
                         <div>
                             <span class="fw-semibold">Unsaved adjudication draft</span>
                             <span class="badge text-bg-warning ms-1">browser only</span>
+                            <span
+                                id="draft-resolution-type"
+                                class="badge text-bg-secondary ms-1"
+                            >
+                                manual panels
+                            </span>
                         </div>
                         <button
                             id="reset-draft-btn"
@@ -132,10 +138,74 @@
                         </button>
                     </div>
                     <div class="card-body">
+                        <section
+                            class="automatic-reconciliation mb-4"
+                            aria-labelledby="automatic-reconciliation-title"
+                        >
+                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                                <div>
+                                    <h3 id="automatic-reconciliation-title" class="h6 mb-1">
+                                        Automatic reconciliation
+                                    </h3>
+                                    <p class="small text-muted mb-0">
+                                        Preview the export pipeline's maximal-coverage
+                                        random or pointwise-average result. Correction-flagged
+                                        sources are excluded.
+                                    </p>
+                                </div>
+                                <div class="automatic-controls">
+                                    <label for="automatic-random-seed" class="small fw-semibold">
+                                        Random seed
+                                    </label>
+                                    <input
+                                        id="automatic-random-seed"
+                                        class="form-control form-control-sm"
+                                        type="number"
+                                        step="1"
+                                        value="0"
+                                        disabled
+                                    >
+                                    <button
+                                        id="average-tracks-btn"
+                                        type="button"
+                                        class="btn btn-outline-primary btn-sm"
+                                        disabled
+                                    >
+                                        Average tracks
+                                    </button>
+                                    <button
+                                        id="random-track-btn"
+                                        type="button"
+                                        class="btn btn-outline-primary btn-sm"
+                                        disabled
+                                    >
+                                        Random track
+                                    </button>
+                                </div>
+                            </div>
+                            <div
+                                id="automatic-proposal-status"
+                                class="small text-muted mt-3"
+                                role="status"
+                            >
+                                Select a conflict to generate a proposal.
+                            </div>
+                            <button
+                                id="use-automatic-proposal-btn"
+                                type="button"
+                                class="btn btn-primary btn-sm mt-2 d-none"
+                            >
+                                Use this proposal
+                            </button>
+                        </section>
+
+                        <hr>
+
                         <p class="small text-muted mb-3">
                             Focus an F1–F4 field, then click a candidate panel
                             to change only that formant. “Use annotation” copies
-                            all four panels and correction flags.
+                            all four panels and correction flags. Editing any
+                            panel or flag changes the draft to manual panels.
                         </p>
                         <div id="draft-formants" class="draft-formants">
                             {% for number in range(1, 5) %}

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -24,6 +26,8 @@ class ConflictSummaryRead(BaseModel):
 
 
 class ConflictAnnotationRead(BaseModel):
+    central_annotation_id: int
+    source_annotation_id: int | None = None
     annotator_id: str
     decision: str
     selected_panel: int | None = None
@@ -37,6 +41,7 @@ class ConflictAnnotationRead(BaseModel):
     needs_correction_f4: bool
     annotation_version: str | None = None
     created_at: str | None = None
+    uploaded_at: str | None = None
     note: str = ""
 
 
@@ -83,3 +88,47 @@ class DraftTrackPreviewRequest(BaseModel):
     needs_correction_f2: bool = False
     needs_correction_f3: bool = False
     needs_correction_f4: bool = False
+
+
+class AutomaticProposalRequest(BaseModel):
+    """An automatic method applied to the current conflict in memory."""
+
+    token_id: str = Field(min_length=1)
+    method: Literal["average_tracks", "random_track"]
+    random_seed: int = 0
+    include_needs_correction: bool = False
+
+
+class ProposalSourceRead(BaseModel):
+    central_annotation_id: int
+    source_annotation_id: int | None = None
+    annotator_id: str
+    decision: str
+    measured_formant_count: int
+    panel_f1: int | None = None
+    panel_f2: int | None = None
+    panel_f3: int | None = None
+    panel_f4: int | None = None
+    needs_correction_f1: bool
+    needs_correction_f2: bool
+    needs_correction_f3: bool
+    needs_correction_f4: bool
+
+
+class ExcludedProposalSourceRead(ProposalSourceRead):
+    reason: str
+
+
+class AutomaticProposalRead(BaseModel):
+    """Serializable proposal state suitable for later persistence."""
+
+    resolution_type: Literal["average_tracks", "random_track"]
+    method: Literal["average_tracks", "random_track"]
+    recipe: dict
+    random_seed: int
+    include_needs_correction: bool
+    source_fingerprint: str
+    source_annotations: list[ProposalSourceRead]
+    eligible_annotations: list[ProposalSourceRead]
+    excluded_annotations: list[ExcludedProposalSourceRead]
+    summary: str

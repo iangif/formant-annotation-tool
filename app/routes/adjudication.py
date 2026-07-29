@@ -11,12 +11,15 @@ from formants_export.adjudication_queries import (
 )
 
 from app.adjudication_schemas import (
+    AutomaticProposalRead,
+    AutomaticProposalRequest,
     ConflictBatchRead,
     ConflictDetailRead,
     ConflictSummaryRead,
     DraftTrackPreviewRequest,
 )
 from app.services import adjudication
+from app.services import adjudication_proposals
 
 
 router = APIRouter(prefix="/adjudication", tags=["adjudication"])
@@ -138,6 +141,35 @@ def post_draft_track_preview(
 
     try:
         content = adjudication.draft_track_preview(
+            payload=payload.model_dump(),
+        )
+    except Exception as error:
+        raise _service_error(error) from error
+    return _png_response(content)
+
+
+@router.post("/automatic-proposal", response_model=AutomaticProposalRead)
+def post_automatic_proposal(
+    payload: AutomaticProposalRequest,
+) -> dict:
+    """Describe a random/average proposal without storing it."""
+
+    try:
+        return adjudication_proposals.automatic_proposal(
+            payload=payload.model_dump(),
+        )
+    except Exception as error:
+        raise _service_error(error) from error
+
+
+@router.post("/automatic-preview")
+def post_automatic_proposal_preview(
+    payload: AutomaticProposalRequest,
+) -> Response:
+    """Render the same automatic recipe used by final resolution."""
+
+    try:
+        content = adjudication_proposals.automatic_proposal_preview(
             payload=payload.model_dump(),
         )
     except Exception as error:
