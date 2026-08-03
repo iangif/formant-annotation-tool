@@ -77,24 +77,12 @@ body {
 .candidate-panel-target:hover,
 .candidate-panel-target:focus-visible {
     border-color: rgba(13, 110, 253, 0.95);
-    background: rgba(13, 110, 253, 0.08);
+    background: rgba(13, 110, 253, 0.02);
     outline: none;
 }
 
 .candidate-panel-target.has-draft-selection {
     box-shadow: inset 0 0 0 3px #ffc107;
-}
-
-.panel-number {
-    display: inline-block;
-    min-width: 1.4rem;
-    padding: 0.08rem 0.25rem;
-    border-radius: 999px;
-    color: #fff;
-    background: rgba(33, 37, 41, 0.78);
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-align: center;
 }
 
 .panel-badges {
@@ -118,6 +106,11 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: opacity 100ms ease;
+}
+
+.candidate-panel-target:hover .panel-selection-badge {
+    opacity: 0;
 }
 
 .panel-selection-badge.is-draft {
@@ -197,6 +190,11 @@ body {
     grid-template-columns: minmax(90px, 120px) auto auto;
     gap: 0.45rem;
     align-items: end;
+}
+
+.automatic-needs-correction {
+    grid-column: 1 / -1;
+    margin-top: 0.15rem;
 }
 
 .automatic-controls label {

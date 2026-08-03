@@ -76,6 +76,9 @@ const elements = {
     averageTracksButton: document.querySelector("#average-tracks-btn"),
     randomTrackButton: document.querySelector("#random-track-btn"),
     randomSeedInput: document.querySelector("#automatic-random-seed"),
+    includeNeedsCorrectionInput: document.querySelector(
+        "#automatic-include-needs-correction",
+    ),
     automaticProposalStatus: document.querySelector("#automatic-proposal-status"),
     useAutomaticProposalButton: document.querySelector(
         "#use-automatic-proposal-btn",
@@ -324,6 +327,7 @@ function blankDraft() {
         source_fingerprint: null,
         automatic_summary: null,
         random_seed: null,
+        include_needs_correction: false,
         automatic_preview_url: null,
         panel_f1: null,
         panel_f2: null,
@@ -430,6 +434,7 @@ function setDraftControlsEnabled(enabled) {
     elements.averageTracksButton.disabled = !previewsAvailable;
     elements.randomTrackButton.disabled = !previewsAvailable;
     elements.randomSeedInput.disabled = !previewsAvailable;
+    elements.includeNeedsCorrectionInput.disabled = !previewsAvailable;
 }
 
 function displayResolutionType(resolutionType) {
@@ -534,6 +539,7 @@ function useAnnotation(annotation) {
     draft.source_fingerprint = null;
     draft.automatic_summary = null;
     draft.random_seed = null;
+    draft.include_needs_correction = false;
     writeDraftToControls();
     draftChanged();
 }
@@ -571,6 +577,7 @@ function changeDraftToManualPanels() {
     draft.source_fingerprint = null;
     draft.automatic_summary = null;
     draft.random_seed = null;
+    draft.include_needs_correction = false;
 }
 
 
@@ -588,6 +595,17 @@ function currentAutomaticProposal() {
 function releaseAutomaticProposal(proposal) {
     if (proposal?.previewUrl) {
         URL.revokeObjectURL(proposal.previewUrl);
+    }
+}
+
+function invalidateAutomaticProposals() {
+    state.proposalRequestVersion += 1;
+    state.automaticProposals.forEach(releaseAutomaticProposal);
+    state.automaticProposals.clear();
+    renderAutomaticProposalStatus();
+    if (state.currentConflict) {
+        renderTrackCards(state.currentConflict);
+        setDraftControlsEnabled(true);
     }
 }
 
@@ -625,8 +643,11 @@ function renderAutomaticProposalStatus() {
         : `Excluded: ${excluded.map(
             (source) => `${source.annotator_id} (${source.reason})`,
         ).join("; ")}.`;
+    const correctionPolicyText = proposal.metadata.include_needs_correction
+        ? "Needs-correction flags were ignored for eligibility."
+        : "Needs-correction annotations were excluded.";
     elements.automaticProposalStatus.textContent =
-        `${proposal.metadata.summary} ${exclusionText}`;
+        `${proposal.metadata.summary} ${correctionPolicyText} ${exclusionText}`;
     elements.useAutomaticProposalButton.classList.remove("d-none");
 }
 
@@ -636,7 +657,7 @@ function proposalRequestPayload(method) {
         token_id: state.currentConflict.token_id,
         method,
         random_seed: Number.isInteger(seed) ? seed : 0,
-        include_needs_correction: false,
+        include_needs_correction: elements.includeNeedsCorrectionInput.checked,
     };
 }
 
@@ -652,6 +673,8 @@ async function generateAutomaticProposal(method) {
     const payload = proposalRequestPayload(method);
     elements.averageTracksButton.disabled = true;
     elements.randomTrackButton.disabled = true;
+    elements.randomSeedInput.disabled = true;
+    elements.includeNeedsCorrectionInput.disabled = true;
     elements.automaticProposalStatus.textContent =
         `Building ${displayResolutionType(method)} proposal…`;
     elements.useAutomaticProposalButton.classList.add("d-none");
@@ -708,6 +731,9 @@ function useAutomaticProposal() {
     draft.source_fingerprint = metadata.source_fingerprint;
     draft.automatic_summary = metadata.summary;
     draft.random_seed = metadata.random_seed;
+    draft.include_needs_correction = Boolean(
+        metadata.include_needs_correction,
+    );
     draft.automatic_preview_url = URL.createObjectURL(proposal.previewBlob);
 
     const selectedId = metadata.recipe.selected_annotation_id;
@@ -834,11 +860,6 @@ function renderCandidateOverlays() {
         target.style.top = `${(GRID_OFFSET.top + row * panelHeight) * 100}%`;
         target.style.width = `${panelWidth * 100}%`;
         target.style.height = `${panelHeight * 100}%`;
-
-        const panelNumber = document.createElement("span");
-        panelNumber.className = "panel-number";
-        panelNumber.textContent = String(panel);
-        target.append(panelNumber);
 
         const panelSelections = selections.get(panel) || [];
         if (panelSelections.length > 0) {
@@ -1332,6 +1353,14 @@ elements.randomTrackButton.addEventListener("click", () => {
 elements.useAutomaticProposalButton.addEventListener(
     "click",
     useAutomaticProposal,
+);
+elements.randomSeedInput.addEventListener(
+    "input",
+    invalidateAutomaticProposals,
+);
+elements.includeNeedsCorrectionInput.addEventListener(
+    "change",
+    invalidateAutomaticProposals,
 );
 
 for (const input of elements.draftPanelInputs) {
