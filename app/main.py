@@ -50,7 +50,7 @@ def annotation_page(request: Request):
 
 @app.get("/adjudicate", include_in_schema=False)
 def adjudication_page(request: Request):
-    """Render the read-only conflict browser."""
+    """Render the persistent conflict-adjudication workspace."""
 
     return templates.TemplateResponse(
         request=request,

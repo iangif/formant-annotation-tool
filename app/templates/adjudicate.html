@@ -17,8 +17,8 @@
             <div>
                 <h1 class="h3 mb-1">Adjudication Workspace</h1>
                 <p class="text-muted mb-0">
-                    Compare current annotations and prepare an interactive
-                    draft. Drafts are not saved in this deliverable.
+                    Compare current annotations, preview a final decision,
+                    and save it to the shared adjudication database.
                 </p>
             </div>
             <div class="d-flex align-items-center gap-2">
@@ -119,8 +119,13 @@
                 <div class="card mb-3">
                     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                         <div>
-                            <span class="fw-semibold">Unsaved adjudication draft</span>
-                            <span class="badge text-bg-warning ms-1">browser only</span>
+                            <span class="fw-semibold">Adjudication decision</span>
+                            <span
+                                id="draft-save-state"
+                                class="badge text-bg-secondary ms-1"
+                            >
+                                unresolved
+                            </span>
                             <span
                                 id="draft-resolution-type"
                                 class="badge text-bg-secondary ms-1"
@@ -128,14 +133,32 @@
                                 manual panels
                             </span>
                         </div>
-                        <button
-                            id="reset-draft-btn"
-                            type="button"
-                            class="btn btn-outline-secondary btn-sm"
-                            disabled
-                        >
-                            Reset draft
-                        </button>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button
+                                id="exclude-bad-btn"
+                                type="button"
+                                class="btn btn-outline-danger btn-sm"
+                                disabled
+                            >
+                                Exclude as bad
+                            </button>
+                            <button
+                                id="reset-draft-btn"
+                                type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                disabled
+                            >
+                                Revert draft
+                            </button>
+                            <button
+                                id="save-draft-btn"
+                                type="button"
+                                class="btn btn-success btn-sm"
+                                disabled
+                            >
+                                Save resolution
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <section
@@ -149,8 +172,8 @@
                                     </h3>
                                     <p class="small text-muted mb-0">
                                         Preview the export pipeline's maximal-coverage
-                                        random or pointwise-average result. By default,
-                                        correction-flagged sources are excluded.
+                                        random or pointwise-average result. Correction-flagged
+                                        sources are excluded unless included below.
                                     </p>
                                 </div>
                                 <div class="automatic-controls">
@@ -275,7 +298,7 @@
                             class="small text-muted mt-3"
                             role="status"
                         >
-                            Select a conflict to begin a draft.
+                            Select a conflict to prepare a decision.
                         </div>
                     </div>
                 </div>

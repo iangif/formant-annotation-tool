@@ -1,8 +1,8 @@
 /**
  * Interactive adjudication comparison workspace.
  *
- * Draft decisions live only in this page's JavaScript memory. The preview POST
- * endpoint renders a supplied draft but never stores it.
+ * Draft decisions are previewed in memory and saved explicitly as append-only
+ * revisions in adjudication.sqlite.
  */
 
 const PANEL_COLUMNS = 5;
@@ -34,7 +34,9 @@ const state = {
     activeView: "candidate",
     focusedFormant: 1,
     drafts: new Map(),
+    savedDecisions: new Map(),
     automaticProposals: new Map(),
+    saving: false,
     detailRequestVersion: 0,
     previewRequestVersion: 0,
     proposalRequestVersion: 0,
@@ -72,7 +74,10 @@ const elements = {
     draftNote: document.querySelector("#draft-note"),
     draftStatus: document.querySelector("#draft-status"),
     draftResolutionType: document.querySelector("#draft-resolution-type"),
+    draftSaveState: document.querySelector("#draft-save-state"),
     resetDraftButton: document.querySelector("#reset-draft-btn"),
+    saveDraftButton: document.querySelector("#save-draft-btn"),
+    excludeBadButton: document.querySelector("#exclude-bad-btn"),
     averageTracksButton: document.querySelector("#average-tracks-btn"),
     randomTrackButton: document.querySelector("#random-track-btn"),
     randomSeedInput: document.querySelector("#automatic-random-seed"),
@@ -182,7 +187,9 @@ function renderBatchOptions() {
     state.batches.forEach((item, index) => {
         const option = document.createElement("option");
         option.value = String(index);
-        option.textContent = `${item.corpus} / ${item.batch} (${item.conflict_count})`;
+        const progress = `${item.saved_count}/${item.conflict_count} saved`;
+        const stale = item.stale_count > 0 ? `, ${item.stale_count} stale` : "";
+        option.textContent = `${item.corpus} / ${item.batch} (${progress}${stale})`;
         elements.batchSelect.append(option);
     });
     elements.batchSelect.disabled = state.batches.length === 0;
@@ -206,10 +213,18 @@ function renderConflictList() {
             `${conflict.batch_index + 1}. ${displayValue(conflict.phone)} ${displayValue(conflict.word)}`;
 
         const detail = document.createElement("div");
-        detail.className = "small opacity-75";
-        detail.textContent =
+        detail.className = "small opacity-75 d-flex justify-content-between gap-2";
+        const annotationSummary = document.createElement("span");
+        annotationSummary.textContent =
             `${displayValue(conflict.ipa)} · ${conflict.annotator_count} annotators`;
+        const status = document.createElement("span");
+        status.className = `conflict-status is-${conflict.adjudication_status}`;
+        status.textContent = conflict.adjudication_status === "saved"
+            ? `saved r${conflict.saved_revision}`
+            : conflict.adjudication_status;
+        detail.append(annotationSummary, status);
 
+        button.classList.add(`is-${conflict.adjudication_status}`);
         button.append(label, detail);
         button.addEventListener("click", () => selectConflict(index));
         elements.conflictList.append(button);
@@ -317,16 +332,18 @@ function renderAnnotations(conflict) {
 
 
 // ---------------------------------------------------------------------------
-// Browser-only draft
+// Persistent adjudication draft
 // ---------------------------------------------------------------------------
 
-function blankDraft() {
+function blankDraft(conflict = state.currentConflict) {
+    const saved = conflict?.saved_adjudication || null;
     return {
         resolution_type: "manual_panels",
         resolution_recipe: null,
-        source_fingerprint: null,
+        source_fingerprint: conflict?.source_fingerprint || null,
+        chosen_central_annotation_id: null,
         automatic_summary: null,
-        random_seed: null,
+        random_seed: 0,
         include_needs_correction: false,
         automatic_preview_url: null,
         panel_f1: null,
@@ -338,7 +355,44 @@ function blankDraft() {
         needs_correction_f3: false,
         needs_correction_f4: false,
         note: "",
+        expected_revision: saved?.revision || 0,
+        dirty: false,
     };
+}
+
+function draftFromSaved(conflict) {
+    const saved = conflict.saved_adjudication;
+    if (!saved || saved.stale) {
+        return blankDraft(conflict);
+    }
+    return {
+        resolution_type: saved.resolution,
+        resolution_recipe: saved.resolution_recipe,
+        source_fingerprint: conflict.source_fingerprint,
+        chosen_central_annotation_id: saved.chosen_central_annotation_id,
+        automatic_summary: null,
+        random_seed: saved.random_seed ?? 0,
+        include_needs_correction: Boolean(saved.include_needs_correction),
+        automatic_preview_url: null,
+        panel_f1: saved.panel_f1,
+        panel_f2: saved.panel_f2,
+        panel_f3: saved.panel_f3,
+        panel_f4: saved.panel_f4,
+        needs_correction_f1: Boolean(saved.needs_correction_f1),
+        needs_correction_f2: Boolean(saved.needs_correction_f2),
+        needs_correction_f3: Boolean(saved.needs_correction_f3),
+        needs_correction_f4: Boolean(saved.needs_correction_f4),
+        note: saved.adjudication_note || "",
+        expected_revision: saved.revision,
+        dirty: false,
+    };
+}
+
+function initializeDraftForConflict(conflict) {
+    state.savedDecisions.set(conflict.token_id, conflict.saved_adjudication || null);
+    if (!state.drafts.has(conflict.token_id)) {
+        state.drafts.set(conflict.token_id, draftFromSaved(conflict));
+    }
 }
 
 function currentDraft() {
@@ -346,7 +400,7 @@ function currentDraft() {
         return null;
     }
     if (!state.drafts.has(state.currentConflict.token_id)) {
-        state.drafts.set(state.currentConflict.token_id, blankDraft());
+        initializeDraftForConflict(state.currentConflict);
     }
     return state.drafts.get(state.currentConflict.token_id);
 }
@@ -363,6 +417,13 @@ function readPanelInput(input) {
 }
 
 function draftValidation(draft) {
+    if (draft.resolution_type === "exclude_bad") {
+        return {
+            valid: true,
+            errors: new Map(),
+            message: "This token will be excluded as bad when saved.",
+        };
+    }
     if (
         ["average_tracks", "random_track"].includes(draft.resolution_type)
         && draft.resolution_recipe
@@ -370,7 +431,7 @@ function draftValidation(draft) {
         return {
             valid: true,
             errors: new Map(),
-            message: `${draft.automatic_summary} Draft remains unsaved.`,
+            message: draft.automatic_summary || "Automatic resolution is ready to save.",
         };
     }
 
@@ -414,8 +475,8 @@ function draftValidation(draft) {
         valid: true,
         errors,
         message: draft.resolution_type === "choose_annotation"
-            ? "Selected annotation is valid and remains unsaved."
-            : "Manual-panel draft is valid and remains unsaved.",
+            ? "Selected annotation is valid."
+            : "Manual-panel decision is valid.",
     };
 }
 
@@ -428,6 +489,7 @@ function setDraftControlsEnabled(enabled) {
         element.disabled = !enabled;
     });
     elements.resetDraftButton.disabled = !enabled;
+    elements.excludeBadButton.disabled = !enabled;
     const previewsAvailable = enabled && Boolean(
         state.currentConflict?.track_preview_available,
     );
@@ -435,6 +497,7 @@ function setDraftControlsEnabled(enabled) {
     elements.randomTrackButton.disabled = !previewsAvailable;
     elements.randomSeedInput.disabled = !previewsAvailable;
     elements.includeNeedsCorrectionInput.disabled = !previewsAvailable;
+    updateSaveState();
 }
 
 function displayResolutionType(resolutionType) {
@@ -443,6 +506,7 @@ function displayResolutionType(resolutionType) {
         choose_annotation: "chosen annotation",
         average_tracks: "average tracks",
         random_track: "random track",
+        exclude_bad: "exclude as bad",
     }[resolutionType] || resolutionType;
 }
 
@@ -452,6 +516,45 @@ function renderDraftResolutionType() {
         draft?.resolution_type || "manual_panels",
     );
 }
+
+function updateSaveState() {
+    const conflict = state.currentConflict;
+    const draft = conflict ? currentDraft() : null;
+    const saved = conflict?.saved_adjudication || null;
+    let label = "unresolved";
+    let badgeClass = "badge text-bg-secondary ms-1";
+
+    if (saved?.stale) {
+        label = "stale — review again";
+        badgeClass = "badge text-bg-danger ms-1";
+    } else if (draft?.dirty) {
+        label = "modified";
+        badgeClass = "badge text-bg-warning ms-1";
+    } else if (saved) {
+        label = `saved r${saved.revision}`;
+        badgeClass = "badge text-bg-success ms-1";
+    }
+
+    elements.draftSaveState.textContent = label;
+    elements.draftSaveState.className = badgeClass;
+    const validation = draft ? draftValidation(draft) : {valid: false};
+    elements.saveDraftButton.disabled = Boolean(
+        !draft || !draft.dirty || !validation.valid || state.saving,
+    );
+    elements.saveDraftButton.textContent = state.saving
+        ? "Saving…"
+        : "Save resolution";
+    elements.resetDraftButton.disabled = !conflict || state.saving;
+    const previewTitle = elements.trackComparisonGrid.querySelector(
+        '[data-preview-kind="draft"] .annotator-key',
+    );
+    if (previewTitle) {
+        previewTitle.textContent = draft?.dirty
+            ? "Modified decision"
+            : "Saved/current decision";
+    }
+}
+
 
 function writeDraftToControls() {
     const draft = currentDraft();
@@ -467,6 +570,10 @@ function writeDraftToControls() {
         input.checked = Boolean(draft[`needs_correction_f${number}`]);
     }
     elements.draftNote.value = draft.note;
+    elements.randomSeedInput.value = String(draft.random_seed ?? 0);
+    elements.includeNeedsCorrectionInput.checked = Boolean(
+        draft.include_needs_correction,
+    );
     renderDraftResolutionType();
     setFocusedFormant(state.focusedFormant);
 }
@@ -514,6 +621,7 @@ function updateDraftValidation() {
     elements.draftStatus.className = validation.valid
         ? "small text-success mt-3"
         : "small text-muted mt-3";
+    updateSaveState();
     return validation;
 }
 
@@ -536,9 +644,10 @@ function useAnnotation(annotation) {
         source_annotation_ids: [annotation.central_annotation_id],
         selected_annotation_id: annotation.central_annotation_id,
     };
-    draft.source_fingerprint = null;
+    draft.source_fingerprint = state.currentConflict.source_fingerprint;
+    draft.chosen_central_annotation_id = annotation.central_annotation_id;
     draft.automatic_summary = null;
-    draft.random_seed = null;
+    draft.random_seed = 0;
     draft.include_needs_correction = false;
     writeDraftToControls();
     draftChanged();
@@ -549,12 +658,20 @@ function resetDraft() {
         return;
     }
     releaseDraftAutomaticPreview(currentDraft());
-    state.drafts.set(state.currentConflict.token_id, blankDraft());
+    state.drafts.set(
+        state.currentConflict.token_id,
+        draftFromSaved(state.currentConflict),
+    );
     writeDraftToControls();
-    draftChanged();
+    draftChanged({markDirty: false});
+    loadSavedAutomaticPreview();
 }
 
-function draftChanged() {
+function draftChanged({markDirty = true} = {}) {
+    const draft = currentDraft();
+    if (draft && markDirty) {
+        draft.dirty = true;
+    }
     renderDraftResolutionType();
     renderCandidateOverlays();
     renderUnplacedCorrectionWarning();
@@ -574,10 +691,142 @@ function changeDraftToManualPanels() {
         method: "manual_panels",
         source_annotation_ids: [],
     };
-    draft.source_fingerprint = null;
+    draft.source_fingerprint = state.currentConflict.source_fingerprint;
+    draft.chosen_central_annotation_id = null;
     draft.automatic_summary = null;
-    draft.random_seed = null;
+    draft.random_seed = 0;
     draft.include_needs_correction = false;
+}
+
+function selectExcludeBad() {
+    const draft = currentDraft();
+    if (!draft || !state.currentConflict) {
+        return;
+    }
+    releaseDraftAutomaticPreview(draft);
+    draft.resolution_type = "exclude_bad";
+    draft.resolution_recipe = {
+        type: "exclusion",
+        method: "exclude_bad",
+        source_annotation_ids: [],
+    };
+    draft.source_fingerprint = state.currentConflict.source_fingerprint;
+    draft.chosen_central_annotation_id = null;
+    draft.automatic_summary = null;
+    draft.random_seed = 0;
+    draft.include_needs_correction = false;
+    for (let number = 1; number <= 4; number += 1) {
+        draft[`panel_f${number}`] = null;
+        draft[`needs_correction_f${number}`] = false;
+    }
+    writeDraftToControls();
+    draftChanged();
+}
+
+function updateSavedProgress(previousStatus, nextStatus) {
+    const batch = state.batches[Number(elements.batchSelect.value)];
+    if (!batch || previousStatus === nextStatus) {
+        return;
+    }
+    const countField = {
+        saved: "saved_count",
+        stale: "stale_count",
+        unresolved: "unresolved_count",
+    };
+    if (countField[previousStatus]) {
+        batch[countField[previousStatus]] = Math.max(
+            0,
+            Number(batch[countField[previousStatus]] || 0) - 1,
+        );
+    }
+    if (countField[nextStatus]) {
+        batch[countField[nextStatus]] = Number(batch[countField[nextStatus]] || 0) + 1;
+    }
+    const selectedValue = elements.batchSelect.value;
+    renderBatchOptions();
+    elements.batchSelect.value = selectedValue;
+}
+
+async function saveDraft() {
+    const draft = currentDraft();
+    if (!draft || !state.currentConflict || state.saving) {
+        return;
+    }
+    readControlsIntoDraft();
+    const validation = updateDraftValidation();
+    if (!validation.valid) {
+        showStatus(validation.message, "warning");
+        return;
+    }
+
+    const payload = {
+        token_id: state.currentConflict.token_id,
+        expected_revision: draft.expected_revision,
+        resolution_type: draft.resolution_type,
+        source_fingerprint: state.currentConflict.source_fingerprint,
+        chosen_central_annotation_id: draft.chosen_central_annotation_id,
+        panel_f1: draft.panel_f1,
+        panel_f2: draft.panel_f2,
+        panel_f3: draft.panel_f3,
+        panel_f4: draft.panel_f4,
+        needs_correction_f1: draft.needs_correction_f1,
+        needs_correction_f2: draft.needs_correction_f2,
+        needs_correction_f3: draft.needs_correction_f3,
+        needs_correction_f4: draft.needs_correction_f4,
+        random_seed: draft.random_seed ?? 0,
+        include_needs_correction: Boolean(draft.include_needs_correction),
+        adjudication_note: draft.note.trim() || null,
+    };
+    const tokenId = state.currentConflict.token_id;
+    state.saving = true;
+    updateSaveState();
+
+    try {
+        const saved = await apiPostJson("/api/adjudication/decision", payload);
+        if (state.currentConflict?.token_id !== tokenId) {
+            return;
+        }
+        const priorSummary = state.conflicts[state.selectedIndex];
+        const previousStatus = priorSummary?.adjudication_status || "unresolved";
+        state.currentConflict.saved_adjudication = saved;
+        state.savedDecisions.set(tokenId, saved);
+        if (priorSummary) {
+            priorSummary.adjudication_status = "saved";
+            priorSummary.saved_resolution = saved.resolution;
+            priorSummary.saved_revision = saved.revision;
+        }
+        updateSavedProgress(previousStatus, "saved");
+
+        const previousPreview = draft.automatic_preview_url;
+        draft.automatic_preview_url = null;
+        const savedDraft = draftFromSaved(state.currentConflict);
+        if (["average_tracks", "random_track"].includes(savedDraft.resolution_type)) {
+            savedDraft.automatic_preview_url = previousPreview;
+        } else if (previousPreview) {
+            URL.revokeObjectURL(previousPreview);
+        }
+        state.drafts.set(tokenId, savedDraft);
+
+        renderConflictList();
+        writeDraftToControls();
+        renderAnnotatorLegend(state.currentConflict);
+        renderCandidateOverlays();
+        renderUnplacedCorrectionWarning();
+        renderTrackCards(state.currentConflict);
+        updateDraftValidation();
+        showStatus(`Saved revision ${saved.revision} for this token.`, "success");
+        if (
+            ["average_tracks", "random_track"].includes(savedDraft.resolution_type)
+            && !savedDraft.automatic_preview_url
+        ) {
+            loadSavedAutomaticPreview();
+        }
+    } catch (error) {
+        showStatus(error.message, "danger");
+    } finally {
+        state.saving = false;
+        updateSaveState();
+    }
 }
 
 
@@ -613,6 +862,49 @@ function releaseDraftAutomaticPreview(draft) {
     if (draft?.automatic_preview_url) {
         URL.revokeObjectURL(draft.automatic_preview_url);
         draft.automatic_preview_url = null;
+    }
+}
+
+async function loadSavedAutomaticPreview() {
+    const draft = currentDraft();
+    if (
+        !draft
+        || !state.currentConflict?.track_preview_available
+        || !["average_tracks", "random_track"].includes(draft.resolution_type)
+        || draft.dirty
+        || draft.automatic_preview_url
+    ) {
+        updateDraftPreviewCard();
+        return;
+    }
+
+    state.previewRequestVersion += 1;
+    const requestVersion = state.previewRequestVersion;
+    const tokenId = state.currentConflict.token_id;
+    updateDraftPreviewCard("Loading saved decision preview…");
+    try {
+        const blob = await apiPostImage(
+            "/api/adjudication/automatic-preview",
+            {
+                token_id: tokenId,
+                method: draft.resolution_type,
+                random_seed: draft.random_seed ?? 0,
+                include_needs_correction: Boolean(draft.include_needs_correction),
+            },
+        );
+        if (
+            requestVersion !== state.previewRequestVersion
+            || state.currentConflict?.token_id !== tokenId
+        ) {
+            return;
+        }
+        releaseDraftAutomaticPreview(draft);
+        draft.automatic_preview_url = URL.createObjectURL(blob);
+        updateDraftPreviewCard();
+    } catch (error) {
+        if (requestVersion === state.previewRequestVersion) {
+            updateDraftPreviewCard(`Saved preview unavailable: ${error.message}`);
+        }
     }
 }
 
@@ -731,9 +1023,8 @@ function useAutomaticProposal() {
     draft.source_fingerprint = metadata.source_fingerprint;
     draft.automatic_summary = metadata.summary;
     draft.random_seed = metadata.random_seed;
-    draft.include_needs_correction = Boolean(
-        metadata.include_needs_correction,
-    );
+    draft.include_needs_correction = Boolean(metadata.include_needs_correction);
+    draft.chosen_central_annotation_id = metadata.recipe.selected_annotation_id ?? null;
     draft.automatic_preview_url = URL.createObjectURL(proposal.previewBlob);
 
     const selectedId = metadata.recipe.selected_annotation_id;
@@ -911,7 +1202,8 @@ function renderAnnotatorLegend(conflict) {
     const draftSwatch = document.createElement("span");
     draftSwatch.className = "legend-swatch";
     const draftLabel = document.createElement("span");
-    draftLabel.textContent = "Unsaved draft";
+    const draft = currentDraft();
+    draftLabel.textContent = draft?.dirty ? "Modified decision" : "Saved/current decision";
     draftItem.append(draftSwatch, draftLabel);
     elements.annotatorLegend.append(draftItem);
 }
@@ -1060,7 +1352,9 @@ function renderTrackCards(conflict) {
         elements.trackComparisonGrid.append(card);
     }
 
-    const draftCard = previewCard("Unsaved draft", DRAFT_COLOR);
+    const draft = currentDraft();
+    const draftTitle = draft?.dirty ? "Modified decision" : "Saved/current decision";
+    const draftCard = previewCard(draftTitle, DRAFT_COLOR);
     draftCard.card.dataset.previewKind = "draft";
     elements.trackComparisonGrid.append(draftCard.card);
     updateDraftPreviewCard();
@@ -1093,6 +1387,8 @@ function updateDraftPreviewCard(message = null) {
         previewMessage(body, message);
     } else if (!validation.valid) {
         previewMessage(body, validation.message);
+    } else if (draft?.resolution_type === "exclude_bad") {
+        previewMessage(body, "This saved decision excludes the token as bad; no track will be exported.");
     } else if (
         draft
         && ["average_tracks", "random_track"].includes(draft.resolution_type)
@@ -1101,15 +1397,20 @@ function updateDraftPreviewCard(message = null) {
         previewImage(
             body,
             draft.automatic_preview_url,
-            `Unsaved ${displayResolutionType(draft.resolution_type)} draft`,
+            `${displayResolutionType(draft.resolution_type)} decision`,
         );
+    } else if (
+        draft
+        && ["average_tracks", "random_track"].includes(draft.resolution_type)
+    ) {
+        previewMessage(body, "Loading automatic decision preview…");
     } else if (!state.currentConflict.track_preview_available) {
         previewMessage(
             body,
             "Track preview unavailable: the pickle or plotting frequency is missing.",
         );
     } else if (state.draftPreviewUrl) {
-        previewImage(body, state.draftPreviewUrl, "Unsaved adjudication draft track");
+        previewImage(body, state.draftPreviewUrl, "Adjudication decision track");
     } else {
         previewMessage(body, "Rendering draft preview…");
     }
@@ -1121,6 +1422,10 @@ function scheduleDraftPreview(validation = updateDraftValidation()) {
     releaseDraftPreviewUrl();
 
     const draft = currentDraft();
+    if (validation.valid && draft?.resolution_type === "exclude_bad") {
+        updateDraftPreviewCard();
+        return;
+    }
     if (
         validation.valid
         && draft
@@ -1233,6 +1538,7 @@ function setComparisonView(view) {
 function renderConflict(conflict) {
     state.currentConflict = conflict;
     state.focusedFormant = 1;
+    initializeDraftForConflict(conflict);
     releaseDraftPreviewUrl();
     setDraftControlsEnabled(true);
 
@@ -1250,7 +1556,9 @@ function renderConflict(conflict) {
     renderUnplacedCorrectionWarning();
     renderAutomaticProposalStatus();
     renderTrackCards(conflict);
-    scheduleDraftPreview(updateDraftValidation());
+    const validation = updateDraftValidation();
+    scheduleDraftPreview(validation);
+    loadSavedAutomaticPreview();
 }
 
 async function selectConflict(index) {
@@ -1344,6 +1652,8 @@ elements.tracksViewButton.addEventListener("click", () => {
     setComparisonView("tracks");
 });
 elements.resetDraftButton.addEventListener("click", resetDraft);
+elements.saveDraftButton.addEventListener("click", saveDraft);
+elements.excludeBadButton.addEventListener("click", selectExcludeBad);
 elements.averageTracksButton.addEventListener("click", () => {
     generateAutomaticProposal("average_tracks");
 });
@@ -1354,10 +1664,7 @@ elements.useAutomaticProposalButton.addEventListener(
     "click",
     useAutomaticProposal,
 );
-elements.randomSeedInput.addEventListener(
-    "input",
-    invalidateAutomaticProposals,
-);
+elements.randomSeedInput.addEventListener("input", invalidateAutomaticProposals);
 elements.includeNeedsCorrectionInput.addEventListener(
     "change",
     invalidateAutomaticProposals,
@@ -1381,7 +1688,14 @@ for (const input of elements.draftCorrectionInputs) {
         draftChanged();
     });
 }
-elements.draftNote.addEventListener("input", readControlsIntoDraft);
+elements.draftNote.addEventListener("input", () => {
+    readControlsIntoDraft();
+    const draft = currentDraft();
+    if (draft) {
+        draft.dirty = true;
+    }
+    updateSaveState();
+});
 
 elements.image.addEventListener("load", () => {
     if (elements.image.dataset.tokenId !== state.currentConflict?.token_id) {
@@ -1396,7 +1710,12 @@ elements.image.addEventListener("error", () => {
     elements.imagePlaceholder.textContent = "Candidate image could not be loaded.";
     elements.imagePlaceholder.classList.remove("d-none");
 });
-window.addEventListener("beforeunload", () => {
+window.addEventListener("beforeunload", (event) => {
+    const hasUnsavedChanges = [...state.drafts.values()].some((draft) => draft.dirty);
+    if (hasUnsavedChanges) {
+        event.preventDefault();
+        event.returnValue = "";
+    }
     releaseDraftPreviewUrl();
     state.automaticProposals.forEach(releaseAutomaticProposal);
     state.drafts.forEach(releaseDraftAutomaticPreview);

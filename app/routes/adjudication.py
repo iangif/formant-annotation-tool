@@ -1,4 +1,4 @@
-"""HTTP routes for browsing current annotation conflicts."""
+"""HTTP routes for browsing, previewing, and saving conflict resolutions."""
 
 from __future__ import annotations
 
@@ -9,14 +9,20 @@ from formants_export.adjudication_queries import (
     CentralDatabaseError,
     ConflictNotFoundError,
 )
+from formants_export.adjudication_store import (
+    AdjudicationRevisionConflictError,
+    StaleAdjudicationError,
+)
 
 from app.adjudication_schemas import (
+    AdjudicationSaveRequest,
     AutomaticProposalRead,
     AutomaticProposalRequest,
     ConflictBatchRead,
     ConflictDetailRead,
     ConflictSummaryRead,
     DraftTrackPreviewRequest,
+    SavedAdjudicationRead,
 )
 from app.services import adjudication
 from app.services import adjudication_proposals
@@ -35,6 +41,11 @@ def _service_error(error: Exception) -> HTTPException:
         return HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Adjudication media file not found: {error}",
+        )
+    if isinstance(error, (AdjudicationRevisionConflictError, StaleAdjudicationError)):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(error),
         )
     if isinstance(error, ValueError):
         return HTTPException(
@@ -146,6 +157,30 @@ def post_draft_track_preview(
     except Exception as error:
         raise _service_error(error) from error
     return _png_response(content)
+
+
+@router.get("/decision", response_model=SavedAdjudicationRead | None)
+def get_latest_adjudication_decision(
+    token_id: str = Query(min_length=1),
+) -> dict | None:
+    """Return the latest saved revision and whether its sources are stale."""
+
+    try:
+        return adjudication.latest_decision(token_id=token_id)
+    except Exception as error:
+        raise _service_error(error) from error
+
+
+@router.post("/decision", response_model=SavedAdjudicationRead)
+def post_adjudication_decision(
+    payload: AdjudicationSaveRequest,
+) -> dict:
+    """Validate and append one persistent adjudication revision."""
+
+    try:
+        return adjudication.save_decision(payload=payload.model_dump())
+    except Exception as error:
+        raise _service_error(error) from error
 
 
 @router.post("/automatic-proposal", response_model=AutomaticProposalRead)
