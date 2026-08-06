@@ -462,7 +462,7 @@ requires-dist = [
 [[package]]
 name = "formants-export"
 version = "0.1.0"
-source = { git = "ssh://git@github.com/massimolipari/formants.git?rev=main#f6b163b286caed7ffdd8f37a43d114f1bb103fce" }
+source = { git = "ssh://git@github.com/massimolipari/formants.git?rev=main#434bd580455174076b1443cd0a8e7b313e2dc69b" }
 dependencies = [
     { name = "fasttrackpy" },
     { name = "pandas" },
