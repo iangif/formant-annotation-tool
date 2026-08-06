@@ -47,6 +47,18 @@ def annotation_page(request: Request):
         context={"annotator_id": ANNOTATOR_ID},
     )
 
+
+@app.get("/adjudicate", include_in_schema=False)
+def adjudication_page(request: Request):
+    """Render the persistent conflict-adjudication workspace."""
+
+    return templates.TemplateResponse(
+        request=request,
+        name="adjudicate.html",
+        context={},
+    )
+
+
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     """

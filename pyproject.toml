@@ -15,6 +15,7 @@ dependencies = [
     "numba<0.62.1",
     "llvmlite<0.47",
     "formants-export",
+    "httpx2>=2.9.1",
 ]
 
 [tool.uv.sources]

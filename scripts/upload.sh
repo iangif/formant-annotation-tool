@@ -21,5 +21,6 @@ CORPUS="$1"
 BATCH="$2"
 
 uv run python -m scripts.migrate_needs_correction_flags
+uv run python -m scripts.migrate_token_rendering_metadata
 uv run python -m scripts.upload_annotations "$CORPUS" "$BATCH"
 uv run python -m scripts.rsync_upload "$CORPUS" "$BATCH"

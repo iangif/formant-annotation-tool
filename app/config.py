@@ -35,6 +35,17 @@ REMOTE_USER_HOST = os.getenv("REMOTE_USER_HOST", "")
 REMOTE_PROJECT_ROOT = Path(os.getenv("REMOTE_PROJECT_ROOT", "/projects/xling-measures"))
 REMOTE_CONFIG_DIR = f"{REMOTE_PROJECT_ROOT}/formants/config"
 
+# Intentionally not imported from environment
+ADJUDICATION_CENTRAL_DB_PATH = Path(
+    str(REMOTE_PROJECT_ROOT / "export" / "central_annotations.sqlite")
+)
+ADJUDICATION_DB_PATH = Path(
+    str(REMOTE_PROJECT_ROOT / "export" / "adjudication.sqlite")
+)
+ADJUDICATION_MEDIA_ROOT = Path(
+    str(REMOTE_PROJECT_ROOT / "data")
+)
+
 PRAAT_PATH = os.getenv("PRAAT_PATH") or None
 
 STATIC_DIR = PROJECT_ROOT / "app" / "static"

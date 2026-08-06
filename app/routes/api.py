@@ -11,6 +11,7 @@ from app.routes.tokens import router as tokens_router
 from app.routes.files import router as files_router
 from app.routes.fasttrack import router as fasttrack_router
 from app.routes.praat import router as praat_router
+from app.routes.adjudication import router as adjudication_router
 
 router = APIRouter(prefix="/api")
 
@@ -21,3 +22,4 @@ router.include_router(notes_router)
 router.include_router(files_router)
 router.include_router(fasttrack_router)
 router.include_router(praat_router)
+router.include_router(adjudication_router)

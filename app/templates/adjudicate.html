@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Formant Adjudication Workspace</title>
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="stylesheet" href="/static/css/adjudicate.css">
+</head>
+<body>
+    <main class="container-fluid py-3">
+        <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+            <div>
+                <h1 class="h3 mb-1">Adjudication Workspace</h1>
+                <p class="text-muted mb-0">
+                    Compare current annotations, preview a final decision,
+                    and save it to the shared adjudication database.
+                </p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <label for="batch-select" class="form-label mb-0 fw-semibold">
+                    Corpus / batch
+                </label>
+                <select id="batch-select" class="form-select" disabled>
+                    <option>Loading conflicts…</option>
+                </select>
+            </div>
+        </header>
+
+        <div id="status-alert" class="alert alert-info py-2" role="status">
+            Loading conflict batches…
+        </div>
+
+        <section class="browser-layout" aria-label="Adjudication conflict workspace">
+            <aside class="card conflict-list-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">Conflicts</span>
+                    <span id="conflict-count" class="badge text-bg-secondary">0</span>
+                </div>
+                <div id="conflict-list" class="list-group list-group-flush overflow-auto"></div>
+            </aside>
+
+            <section class="detail-panel">
+                <div class="card mb-3">
+                    <div class="card-header d-flex flex-wrap justify-content-between gap-2">
+                        <div>
+                            <h2 id="token-title" class="h5 mb-1">Select a conflict</h2>
+                            <div id="token-subtitle" class="small text-muted"></div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Comparison view">
+                                <button
+                                    id="candidate-view-btn"
+                                    type="button"
+                                    class="btn btn-primary"
+                                    aria-pressed="true"
+                                >
+                                    Candidate grid
+                                </button>
+                                <button
+                                    id="tracks-view-btn"
+                                    type="button"
+                                    class="btn btn-outline-primary"
+                                    aria-pressed="false"
+                                >
+                                    Selected tracks
+                                </button>
+                            </div>
+                            <button id="previous-btn" class="btn btn-outline-secondary btn-sm" disabled>
+                                Previous
+                            </button>
+                            <button id="next-btn" class="btn btn-outline-secondary btn-sm" disabled>
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                    <div id="candidate-view" class="card-body comparison-view">
+                        <div class="spectrogram-area">
+                            <div id="image-placeholder" class="text-muted text-center">
+                                Candidate image will appear here.
+                            </div>
+                            <div id="candidate-grid-wrapper" class="candidate-grid-wrapper d-none">
+                                <img
+                                    id="candidate-image"
+                                    class="candidate-image"
+                                    alt="FastTrack candidate spectrogram grid"
+                                >
+                                <div
+                                    id="candidate-overlay-layer"
+                                    class="candidate-overlay-layer"
+                                    aria-label="Candidate panel selections"
+                                ></div>
+                            </div>
+                        </div>
+                        <div id="annotator-legend" class="annotator-legend mt-3"></div>
+                        <div
+                            id="unplaced-correction-alert"
+                            class="alert alert-warning py-2 mt-3 mb-0 d-none"
+                            role="note"
+                        ></div>
+                    </div>
+                    <div id="tracks-view" class="card-body comparison-view d-none">
+                        <p class="small text-muted mb-3">
+                            Each card uses the same clean spectrogram and the
+                            token's stored plotting-frequency ceiling. Dashed
+                            formant lines are flagged as needing correction.
+                        </p>
+                        <div id="track-comparison-grid" class="track-comparison-grid"></div>
+                    </div>
+                    <div id="audio-container" class="card-footer d-none">
+                        <audio id="token-audio" controls preload="none"></audio>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <span class="fw-semibold">Adjudication decision</span>
+                            <span
+                                id="draft-save-state"
+                                class="badge text-bg-secondary ms-1"
+                            >
+                                unresolved
+                            </span>
+                            <span
+                                id="draft-resolution-type"
+                                class="badge text-bg-secondary ms-1"
+                            >
+                                manual panels
+                            </span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button
+                                id="exclude-bad-btn"
+                                type="button"
+                                class="btn btn-outline-danger btn-sm"
+                                disabled
+                            >
+                                Exclude as bad
+                            </button>
+                            <button
+                                id="reset-draft-btn"
+                                type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                disabled
+                            >
+                                Revert draft
+                            </button>
+                            <button
+                                id="save-draft-btn"
+                                type="button"
+                                class="btn btn-success btn-sm"
+                                disabled
+                            >
+                                Save resolution
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <section
+                            class="automatic-reconciliation mb-4"
+                            aria-labelledby="automatic-reconciliation-title"
+                        >
+                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                                <div>
+                                    <h3 id="automatic-reconciliation-title" class="h6 mb-1">
+                                        Automatic reconciliation
+                                    </h3>
+                                    <p class="small text-muted mb-0">
+                                        Preview the export pipeline's maximal-coverage
+                                        random or pointwise-average result. Correction-flagged
+                                        sources are excluded unless included below.
+                                    </p>
+                                </div>
+                                <div class="automatic-controls">
+                                    <label for="automatic-random-seed" class="small fw-semibold">
+                                        Random seed
+                                    </label>
+                                    <input
+                                        id="automatic-random-seed"
+                                        class="form-control form-control-sm"
+                                        type="number"
+                                        step="1"
+                                        value="0"
+                                        disabled
+                                    >
+                                    <button
+                                        id="average-tracks-btn"
+                                        type="button"
+                                        class="btn btn-outline-primary btn-sm"
+                                        disabled
+                                    >
+                                        Average tracks
+                                    </button>
+                                    <button
+                                        id="random-track-btn"
+                                        type="button"
+                                        class="btn btn-outline-primary btn-sm"
+                                        disabled
+                                    >
+                                        Random track
+                                    </button>
+                                    <div class="form-check automatic-needs-correction">
+                                        <input
+                                            id="automatic-include-needs-correction"
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            disabled
+                                        >
+                                        <label
+                                            class="form-check-label small"
+                                            for="automatic-include-needs-correction"
+                                        >
+                                            Include needs-correction annotations
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                id="automatic-proposal-status"
+                                class="small text-muted mt-3"
+                                role="status"
+                            >
+                                Select a conflict to generate a proposal.
+                            </div>
+                            <button
+                                id="use-automatic-proposal-btn"
+                                type="button"
+                                class="btn btn-primary btn-sm mt-2 d-none"
+                            >
+                                Use this proposal
+                            </button>
+                        </section>
+
+                        <hr>
+
+                        <p class="small text-muted mb-3">
+                            Focus an F1–F4 field, then click a candidate panel
+                            to change only that formant. “Use annotation” copies
+                            all four panels and correction flags. Editing any
+                            panel or flag changes the draft to manual panels.
+                        </p>
+                        <div id="draft-formants" class="draft-formants">
+                            {% for number in range(1, 5) %}
+                            <div class="draft-formant" data-formant="{{ number }}">
+                                <label
+                                    for="draft-panel-f{{ number }}"
+                                    class="form-label fw-semibold"
+                                >
+                                    F{{ number }} panel
+                                </label>
+                                <input
+                                    id="draft-panel-f{{ number }}"
+                                    class="form-control draft-panel-input"
+                                    type="number"
+                                    min="0"
+                                    max="19"
+                                    step="1"
+                                    inputmode="numeric"
+                                    data-formant="{{ number }}"
+                                    disabled
+                                >
+                                <div class="form-check mt-2">
+                                    <input
+                                        id="draft-correction-f{{ number }}"
+                                        class="form-check-input draft-correction-input"
+                                        type="checkbox"
+                                        data-formant="{{ number }}"
+                                        disabled
+                                    >
+                                    <label
+                                        for="draft-correction-f{{ number }}"
+                                        class="form-check-label small"
+                                    >
+                                        Needs correction
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="mt-3">
+                            <label for="draft-note" class="form-label fw-semibold">
+                                Adjudication note
+                            </label>
+                            <textarea
+                                id="draft-note"
+                                class="form-control"
+                                rows="2"
+                                disabled
+                            ></textarea>
+                        </div>
+                        <div
+                            id="draft-status"
+                            class="small text-muted mt-3"
+                            role="status"
+                        >
+                            Select a conflict to prepare a decision.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header fw-semibold">Token metadata</div>
+                    <div id="metadata-grid" class="card-body metadata-grid text-muted">
+                        Select a conflict to inspect its metadata.
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header fw-semibold">Current annotations</div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Annotator</th>
+                                    <th>Decision</th>
+                                    <th>F1</th>
+                                    <th>F2</th>
+                                    <th>F3</th>
+                                    <th>F4</th>
+                                    <th>Note</th>
+                                    <th><span class="visually-hidden">Draft action</span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="annotation-rows">
+                                <tr>
+                                    <td colspan="8" class="text-muted text-center py-3">
+                                        Select a conflict to view annotations.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <script type="module" src="/static/js/adjudicate/main.js"></script>
+</body>
+</html>

@@ -95,6 +95,7 @@ class Token(Base):
     max_max_formant: Mapped[float | None] = mapped_column(Float, nullable=True)
     n_formants: Mapped[int | None] = mapped_column(Integer, nullable=True)
     max_number_of_formants: Mapped[float | None] = mapped_column(Float, nullable=True)
+    max_plotting_frequency: Mapped[float | None] = mapped_column(Float, nullable=True)
     candidates_pickle_path: Mapped[str | None] = mapped_column(String, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
