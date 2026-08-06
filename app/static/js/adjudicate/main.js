@@ -341,7 +341,7 @@ function blankDraft(conflict = state.currentConflict) {
         resolution_type: "manual_panels",
         resolution_recipe: null,
         source_fingerprint: conflict?.source_fingerprint || null,
-        chosen_central_annotation_id: null,
+        chosen_annotator_id: null,
         automatic_summary: null,
         random_seed: 0,
         include_needs_correction: false,
@@ -369,7 +369,7 @@ function draftFromSaved(conflict) {
         resolution_type: saved.resolution,
         resolution_recipe: saved.resolution_recipe,
         source_fingerprint: conflict.source_fingerprint,
-        chosen_central_annotation_id: saved.chosen_central_annotation_id,
+        chosen_annotator_id: saved.chosen_annotator_id,
         automatic_summary: null,
         random_seed: saved.random_seed ?? 0,
         include_needs_correction: Boolean(saved.include_needs_correction),
@@ -641,11 +641,11 @@ function useAnnotation(annotation) {
     draft.resolution_recipe = {
         type: "selected_annotation",
         method: "choose_annotation",
-        source_annotation_ids: [annotation.central_annotation_id],
-        selected_annotation_id: annotation.central_annotation_id,
+        source_annotator_ids: [annotation.annotator_id],
+        selected_annotator_id: annotation.annotator_id,
     };
     draft.source_fingerprint = state.currentConflict.source_fingerprint;
-    draft.chosen_central_annotation_id = annotation.central_annotation_id;
+    draft.chosen_annotator_id = annotation.annotator_id;
     draft.automatic_summary = null;
     draft.random_seed = 0;
     draft.include_needs_correction = false;
@@ -689,10 +689,10 @@ function changeDraftToManualPanels() {
     draft.resolution_recipe = {
         type: "selected_panels",
         method: "manual_panels",
-        source_annotation_ids: [],
+        source_annotator_ids: [],
     };
     draft.source_fingerprint = state.currentConflict.source_fingerprint;
-    draft.chosen_central_annotation_id = null;
+    draft.chosen_annotator_id = null;
     draft.automatic_summary = null;
     draft.random_seed = 0;
     draft.include_needs_correction = false;
@@ -708,10 +708,10 @@ function selectExcludeBad() {
     draft.resolution_recipe = {
         type: "exclusion",
         method: "exclude_bad",
-        source_annotation_ids: [],
+        source_annotator_ids: [],
     };
     draft.source_fingerprint = state.currentConflict.source_fingerprint;
-    draft.chosen_central_annotation_id = null;
+    draft.chosen_annotator_id = null;
     draft.automatic_summary = null;
     draft.random_seed = 0;
     draft.include_needs_correction = false;
@@ -764,7 +764,7 @@ async function saveDraft() {
         expected_revision: draft.expected_revision,
         resolution_type: draft.resolution_type,
         source_fingerprint: state.currentConflict.source_fingerprint,
-        chosen_central_annotation_id: draft.chosen_central_annotation_id,
+        chosen_annotator_id: draft.chosen_annotator_id,
         panel_f1: draft.panel_f1,
         panel_f2: draft.panel_f2,
         panel_f3: draft.panel_f3,
@@ -1024,12 +1024,12 @@ function useAutomaticProposal() {
     draft.automatic_summary = metadata.summary;
     draft.random_seed = metadata.random_seed;
     draft.include_needs_correction = Boolean(metadata.include_needs_correction);
-    draft.chosen_central_annotation_id = metadata.recipe.selected_annotation_id ?? null;
+    draft.chosen_annotator_id = metadata.recipe.selected_annotator_id ?? null;
     draft.automatic_preview_url = URL.createObjectURL(proposal.previewBlob);
 
-    const selectedId = metadata.recipe.selected_annotation_id;
+    const selectedAnnotatorId = metadata.recipe.selected_annotator_id;
     const selected = state.currentConflict.annotations.find(
-        (annotation) => annotation.central_annotation_id === selectedId,
+        (annotation) => annotation.annotator_id === selectedAnnotatorId,
     );
     for (let number = 1; number <= 4; number += 1) {
         draft[`panel_f${number}`] = selected

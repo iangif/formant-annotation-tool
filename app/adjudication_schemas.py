@@ -32,7 +32,6 @@ class ConflictSummaryRead(BaseModel):
 
 
 class ConflictAnnotationRead(BaseModel):
-    central_annotation_id: int
     source_annotation_id: int | None = None
     annotator_id: str
     decision: str
@@ -56,7 +55,6 @@ class SavedAdjudicationSourceRead(BaseModel):
     adjudication_id: int
     source_order: int
     source_role: str
-    central_annotation_id_at_save: int | None = None
     source_annotation_id: int | None = None
     annotator_id: str
     decision: str
@@ -80,7 +78,6 @@ class SavedAdjudicationRead(BaseModel):
     batch: str
     revision: int
     resolution: str
-    chosen_central_annotation_id: int | None = None
     chosen_annotator_id: str | None = None
     chosen_source_annotation_id: int | None = None
     panel_f1: int | None = None
@@ -159,7 +156,7 @@ class AdjudicationSaveRequest(BaseModel):
         "random_track",
     ]
     source_fingerprint: str = Field(min_length=1)
-    chosen_central_annotation_id: int | None = Field(default=None, ge=1)
+    chosen_annotator_id: str | None = Field(default=None, min_length=1)
     panel_f1: int | None = Field(default=None, ge=0)
     panel_f2: int | None = Field(default=None, ge=0)
     panel_f3: int | None = Field(default=None, ge=0)
@@ -183,7 +180,6 @@ class AutomaticProposalRequest(BaseModel):
 
 
 class ProposalSourceRead(BaseModel):
-    central_annotation_id: int
     source_annotation_id: int | None = None
     annotator_id: str
     decision: str

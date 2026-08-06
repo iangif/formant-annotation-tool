@@ -11,10 +11,6 @@ from formants_export.adjudication_proposals import (
     AutomaticAdjudicationProposal,
     create_automatic_adjudication_proposal,
 )
-from formants_export.adjudication_rendering import (
-    render_automatic_proposal_spectrogram,
-)
-
 from app.services import adjudication
 
 
@@ -44,6 +40,10 @@ def automatic_proposal(*, payload: dict) -> dict:
 
 def automatic_proposal_preview(*, payload: dict) -> bytes:
     """Render the current deterministic proposal without writing a decision."""
+
+    from formants_export.adjudication_rendering import (
+        render_automatic_proposal_spectrogram,
+    )
 
     token, annotations, proposal = _proposal_context(payload)
     pickle_path = adjudication._candidate_pickle_path(token)

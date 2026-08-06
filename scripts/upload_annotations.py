@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -31,6 +33,7 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    UniqueConstraint,
     create_engine,
     func,
     insert,
@@ -136,6 +139,11 @@ def define_snapshot_tables(metadata: MetaData) -> dict[str, Table]:
         __import__("sqlalchemy").Column("needs_correction_f4", Boolean, nullable=False),
         __import__("sqlalchemy").Column("annotation_version", String),
         __import__("sqlalchemy").Column("created_at", String),
+        UniqueConstraint(
+            "token_id",
+            "annotator_id",
+            name="uq_snapshot_annotations_token_annotator",
+        ),
     )
 
     token_notes = Table(
@@ -341,17 +349,9 @@ def write_snapshot(
     annotations: list[Annotation],
     token_notes: list[TokenNote],
 ) -> None:
-    """Create the output SQLite snapshot from token and annotation rows."""
+    """Create and atomically publish a SQLite upload snapshot."""
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    if output_path.exists():
-        output_path.unlink()
-
-    engine = create_engine(sqlite_url(output_path))
-    metadata = MetaData()
-    tables = define_snapshot_tables(metadata)
-    metadata.create_all(engine)
 
     token_rows = [
         token_to_row(token, corpus_name=corpus_name, batch_name=batch_name)
@@ -359,6 +359,20 @@ def write_snapshot(
     ]
     annotation_rows = [annotation_to_row(annotation) for annotation in annotations]
     token_note_rows = [token_note_to_row(note) for note in token_notes]
+
+    duplicate_keys: dict[tuple[str, str], int] = {}
+    for row in annotation_rows:
+        key = (str(row["token_id"]), str(row["annotator_id"]))
+        duplicate_keys[key] = duplicate_keys.get(key, 0) + 1
+    duplicates = [key for key, count in duplicate_keys.items() if count > 1]
+    if duplicates:
+        examples = ", ".join(
+            f"{token_id} / {annotator}" for token_id, annotator in duplicates[:10]
+        )
+        raise ValueError(
+            "Upload snapshots must contain exactly one current annotation per "
+            f"(token_id, annotator_id). Duplicate examples: {examples}"
+        )
 
     manifest_rows = {
         "schema_version": SNAPSHOT_SCHEMA_VERSION,
@@ -373,27 +387,50 @@ def write_snapshot(
         "source": "formant-annotation-tool scripts/upload_annotations.py",
     }
 
-    with engine.begin() as conn:
-        if token_rows:
-            conn.execute(insert(tables["tokens"]), token_rows)
+    nonce = uuid.uuid4().hex
+    temp_db_path = output_path.with_name(f".{output_path.name}.{nonce}.tmp")
+    manifest_json_path = output_path.with_suffix(".manifest.json")
+    temp_manifest_path = manifest_json_path.with_name(
+        f".{manifest_json_path.name}.{nonce}.tmp"
+    )
+    engine = None
 
-        if annotation_rows:
-            conn.execute(insert(tables["annotations"]), annotation_rows)
+    try:
+        engine = create_engine(sqlite_url(temp_db_path))
+        metadata = MetaData()
+        tables = define_snapshot_tables(metadata)
+        metadata.create_all(engine)
 
-        if token_note_rows:
-            conn.execute(insert(tables["token_notes"]), token_note_rows)
+        with engine.begin() as conn:
+            if token_rows:
+                conn.execute(insert(tables["tokens"]), token_rows)
+            if annotation_rows:
+                conn.execute(insert(tables["annotations"]), annotation_rows)
+            if token_note_rows:
+                conn.execute(insert(tables["token_notes"]), token_note_rows)
+            conn.execute(
+                insert(tables["manifest"]),
+                [
+                    {"key": key, "value": value}
+                    for key, value in manifest_rows.items()
+                ],
+            )
 
-        conn.execute(
-            insert(tables["manifest"]),
-            [{"key": key, "value": value} for key, value in manifest_rows.items()],
+        engine.dispose()
+        engine = None
+
+        temp_manifest_path.write_text(
+            json.dumps(manifest_rows, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
         )
 
-    # A JSON sidecar makes quick inspection easy without opening SQLite.
-    manifest_json_path = output_path.with_suffix(".manifest.json")
-    manifest_json_path.write_text(
-        json.dumps(manifest_rows, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+        os.replace(temp_db_path, output_path)
+        os.replace(temp_manifest_path, manifest_json_path)
+    finally:
+        if engine is not None:
+            engine.dispose()
+        temp_db_path.unlink(missing_ok=True)
+        temp_manifest_path.unlink(missing_ok=True)
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(

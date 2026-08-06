@@ -11,7 +11,6 @@ from formants_export.adjudication_queries import (
     list_conflict_batches,
     list_conflicts,
 )
-from formants_export.adjudication_rendering import render_selected_track_spectrogram
 from formants_export.adjudication_store import (
     get_latest_adjudication,
     list_latest_adjudications,
@@ -61,9 +60,7 @@ def _saved_state(
             )
             if saved["resolution"] in {"choose_annotation", "random_track"}:
                 selected = mapped_sources[0]
-                saved["chosen_central_annotation_id"] = int(
-                    selected["central_annotation_id"]
-                )
+                saved["chosen_annotator_id"] = str(selected["annotator_id"])
     return fingerprint, saved
 
 
@@ -244,6 +241,10 @@ def conflict_media_path(*, token_id: str, media_kind: str) -> Path:
 
 
 def _render_track_preview(*, token: dict, annotation: dict) -> bytes:
+    from formants_export.adjudication_rendering import (
+        render_selected_track_spectrogram,
+    )
+
     pickle_path = _candidate_pickle_path(token)
     if not pickle_path.is_file():
         raise FileNotFoundError(pickle_path)
