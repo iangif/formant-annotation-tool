@@ -13,7 +13,10 @@ wheels/
 .env
 
 data/*.sqlite
-data/corpora*
+# Ignore locally loaded corpora by default, but keep the bundled demo corpus.
+data/corpora/*
+!data/corpora/demo/
+!data/corpora/demo/**
 data/sync_manifest.json
 data/local_settings.json
 
