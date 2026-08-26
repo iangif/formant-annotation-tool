@@ -1,0 +1,82 @@
+File type = "ooTextFile"
+Object class = "TextGrid"
+
+xmin = 0 
+xmax = 0.7400000000000002 
+tiers? <exists> 
+size = 3 
+item []: 
+    item [1]:
+        class = "IntervalTier" 
+        name = "words" 
+        xmin = 0 
+        xmax = 0.7400000000000002 
+        intervals: size = 3 
+        intervals [1]:
+            xmin = 0 
+            xmax = 0.20999999999999908 
+            text = "was" 
+        intervals [2]:
+            xmin = 0.20999999999999908 
+            xmax = 0.28999999999999915 
+            text = "a" 
+        intervals [3]:
+            xmin = 0.28999999999999915 
+            xmax = 0.7400000000000002 
+            text = "great" 
+    item [2]:
+        class = "IntervalTier" 
+        name = "phones" 
+        xmin = 0 
+        xmax = 0.7400000000000002 
+        intervals: size = 8 
+        intervals [1]:
+            xmin = 0 
+            xmax = 0.08000000000000007 
+            text = "W" 
+        intervals [2]:
+            xmin = 0.08000000000000007 
+            xmax = 0.15000000000000036 
+            text = "AH0" 
+        intervals [3]:
+            xmin = 0.15000000000000036 
+            xmax = 0.20999999999999908 
+            text = "Z" 
+        intervals [4]:
+            xmin = 0.20999999999999908 
+            xmax = 0.28999999999999915 
+            text = "AH0" 
+        intervals [5]:
+            xmin = 0.28999999999999915 
+            xmax = 0.4599999999999991 
+            text = "G" 
+        intervals [6]:
+            xmin = 0.4599999999999991 
+            xmax = 0.5099999999999998 
+            text = "R" 
+        intervals [7]:
+            xmin = 0.5099999999999998 
+            xmax = 0.5999999999999996 
+            text = "EY1" 
+        intervals [8]:
+            xmin = 0.5999999999999996 
+            xmax = 0.7400000000000002 
+            text = "T" 
+    item [3]:
+        class = "IntervalTier" 
+        name = "vowel" 
+        xmin = 0 
+        xmax = 0.7400000000000002 
+        intervals: size = 3 
+        intervals [1]:
+            xmin = 0 
+            xmax = 0.20999999999999908 
+            text = "" 
+        intervals [2]:
+            xmin = 0.20999999999999908 
+            xmax = 0.28999999999999915 
+            text = "*" 
+        intervals [3]:
+            xmin = 0.28999999999999915 
+            xmax = 0.7400000000000002 
+            text = "" 
