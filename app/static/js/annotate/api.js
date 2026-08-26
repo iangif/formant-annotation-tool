@@ -2,6 +2,7 @@ import { elements, annotatorId } from "./dom.js";
 import { state } from "./state.js";
 import { fadeOutSpectrogram, setControlsEnabled } from "./ui.js";
 import { hidePanelHoverOverlay } from "./spectrogram.js";
+import { DEMO_BATCH, DEMO_CORPUS } from "./constants.js";
 import {
     renderBatchMenu,
     renderBatchProgress,
@@ -170,6 +171,9 @@ export async function initializeBatches() {
 
     const defaultBatch =
         state.batches.find((batch) => batch.is_last_opened) ||
+        state.batches.find(
+            (batch) => batch.corpus !== DEMO_CORPUS || batch.name !== DEMO_BATCH
+        ) ||
         state.batches[0];
 
     await openBatch(defaultBatch.id);

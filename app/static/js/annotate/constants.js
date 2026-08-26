@@ -3,6 +3,9 @@ export const PANEL_ROWS = 4;
 export const MIN_PANEL = 0;
 export const MAX_PANEL = 19;
 
+export const DEMO_CORPUS = "demo";
+export const DEMO_BATCH = "demo";
+
 export const MIN_RIGHT_PANEL_WIDTH = 240;
 export const MAX_RIGHT_PANEL_WIDTH = 700;
 

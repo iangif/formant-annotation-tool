@@ -4,11 +4,15 @@ Create/update the local SQLite database from locally synced batches.
 Run from project root after scripts.sync_assigned_batches:
     uv run python -m scripts.sync_database
 
+Optionally sync only one locally available corpus:
+    uv run python -m scripts.sync_database --corpus demo
+
 Safe to run repeatedly.
 """
 
 from __future__ import annotations
 
+import argparse
 import csv
 from pathlib import Path
 import yaml
@@ -200,10 +204,17 @@ def upsert_token(db, values: dict) -> None:
     for key, value in values.items():
         setattr(token, key, value)
 
-def synced_batch_dirs() -> list[Path]:
+def synced_batch_dirs(corpus_name: str | None = None) -> list[Path]:
+    """Return local batch directories, optionally restricted to one corpus."""
+
     if not CORPORA_DIR.exists():
         return []
-    return sorted(CORPORA_DIR.glob("*/batches/*"))
+
+    if corpus_name is not None:
+        batch_root = CORPORA_DIR / corpus_name / "batches"
+        return sorted(path for path in batch_root.glob("*") if path.is_dir())
+
+    return sorted(path for path in CORPORA_DIR.glob("*/batches/*") if path.is_dir())
 
 def sync_one_batch(db, batch_root: Path) -> int:
     corpus_name = batch_root.parents[1].name
@@ -257,16 +268,38 @@ def sync_one_batch(db, batch_root: Path) -> int:
     
     return count
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Create/update the local database from locally available corpus data."
+    )
+    parser.add_argument(
+        "--corpus",
+        help="Only sync batches belonging to this local corpus.",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
+    args = parse_args()
+
     if ANNOTATOR_ID == "unknown":
         raise RuntimeError("Set ANNOTATOR_ID in .env before syncing the database.")
 
     migrate_database(resolve_db_path(None))
     Base.metadata.create_all(bind=engine)
 
-    batch_dirs = synced_batch_dirs()
+    batch_dirs = synced_batch_dirs(args.corpus)
     if not batch_dirs:
-        print("No locally synced batches found under data/corpora/. Run scripts.sync_assigned_batches first.")
+        if args.corpus:
+            print(
+                f"No local batches found for corpus {args.corpus!r} under "
+                f"{CORPORA_DIR / args.corpus / 'batches'}."
+            )
+        else:
+            print(
+                "No locally synced batches found under data/corpora/. "
+                "Run scripts.sync_assigned_batches first or add a local corpus."
+            )
         return
 
     db = SessionLocal()

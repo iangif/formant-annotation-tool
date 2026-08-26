@@ -1,5 +1,6 @@
 import { elements } from "./dom.js";
 import { state } from "./state.js";
+import { DEMO_BATCH, DEMO_CORPUS } from "./constants.js";
 import {
     closeHotkeysPanel,
     openHotkeysPanel,
@@ -10,6 +11,7 @@ import {
 } from "./ui.js";
 import {
     initializeBatches,
+    refreshBatches,
     openBatch,
     openCurrentTokenInPraat,
     closePraat,
@@ -40,6 +42,29 @@ function registerButtonEvents() {
         } catch (error) {
             showToast(error.message, "danger");
             setControlsEnabled(false);
+        }
+    });
+
+    elements.demoBatchBtn.addEventListener("click", async () => {
+        elements.demoBatchBtn.disabled = true;
+
+        try {
+            await refreshBatches();
+            const demoBatch = state.batches.find(
+                (batch) => batch.corpus === DEMO_CORPUS && batch.name === DEMO_BATCH
+            );
+
+            if (!demoBatch) {
+                throw new Error(
+                    "Demo data is not registered. Ensure data/corpora/demo is present and restart the app."
+                );
+            }
+
+            await openBatch(demoBatch.id);
+        } catch (error) {
+            showToast(error.message, "danger");
+        } finally {
+            elements.demoBatchBtn.disabled = false;
         }
     });
 

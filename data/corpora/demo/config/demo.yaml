@@ -1,0 +1,17 @@
+# Fast Track options
+buffer: 0.025
+n_formants: 4
+time_step: 0.002
+groups:
+    male:
+        min_max_formant: 4000
+        max_max_formant: 7000
+        max_number_of_formants: 5.5
+        max_plotting_frequency: 4750
+        dynamic_range: 50
+    female:
+        min_max_formant: 4500
+        max_max_formant: 7500
+        max_number_of_formants: 5.5
+        max_plotting_frequency: 5250
+        dynamic_range: 50

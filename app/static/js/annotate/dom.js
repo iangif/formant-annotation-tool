@@ -49,6 +49,7 @@ export const elements = {
 
     batchMenuBtn: document.getElementById("batch-menu-btn"),
     batchMenu: document.getElementById("batch-menu"),
+    demoBatchBtn: document.getElementById("demo-batch-btn"),
     jumpTokenBtn: document.getElementById("jump-token-btn"),
     batchIndexInput: document.getElementById("batch-index-input"),
     noteDropdownBtn: document.getElementById("note-dropdown-btn"),
