@@ -26,7 +26,11 @@ class AssignedBatch:
 
 def run_rsync(remote_source: str, local_dest: Path, extra_args: list[str] | None = None) -> None:
     if not REMOTE_USER_HOST:
-        raise RuntimeError("Set REMOTE_USER_HOST in .env, for example: REMOTE_USER_HOST=username@oka")
+        raise SystemExit(
+            "\nError: REMOTE_USER_HOST is not set.\n"
+            "Set it in .env, for example:\n"
+            "  REMOTE_USER_HOST=username@oka\n"
+        )
 
     local_dest.mkdir(parents=True, exist_ok=True)
 
@@ -48,7 +52,18 @@ def run_rsync(remote_source: str, local_dest: Path, extra_args: list[str] | None
         ]
     )
 
-    subprocess.run(command, check=True)
+    try:
+        subprocess.run(command, check=True)
+    except FileNotFoundError as exc:
+        raise SystemExit("\nError: rsync is not installed or is not available on PATH.\n") from exc
+    except subprocess.CalledProcessError as exc:
+        raise SystemExit(
+            f"\nError: rsync failed while copying from Oka.\n"
+            f"Remote source: {remote_source}\n"
+            f"Local destination: {local_dest}\n"
+            f"rsync exited with status {exc.returncode}.\n"
+            "See the rsync output above for details.\n"
+        ) from exc
 
 def rsync_file(remote_file: str, local_dir: Path) -> None:
     run_rsync(remote_file, local_dir)
@@ -194,50 +209,125 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--corpus", required=True, help="Corpus name, for example: ls_eng")
     return parser.parse_args()
 
-def validate_corpus_exists(corpus: str) -> None:
-    """Verify that request corpus has a config file"""
-    
-    remote_config = f"{REMOTE_USER_HOST}:{REMOTE_CONFIG_DIR}/{corpus}.yaml"
+def run_ssh(*remote_command: str) -> subprocess.CompletedProcess[str]:
+    """Run a remote command and retain its output for useful error reporting."""
+    if not REMOTE_USER_HOST:
+        raise SystemExit(
+            "\nError: REMOTE_USER_HOST is not set.\n"
+            "Set it in .env, for example:\n"
+            "  REMOTE_USER_HOST=username@oka\n"
+        )
 
-    result = subprocess.run(
-        ["ssh", REMOTE_USER_HOST, "test", "-f", f"{REMOTE_CONFIG_DIR}/{corpus}.yaml"],
-        capture_output=True,
+    try:
+        return subprocess.run(
+            ["ssh", REMOTE_USER_HOST, *remote_command],
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError as exc:
+        raise SystemExit(
+            "\nError: ssh is not installed or is not available on PATH.\n"
+        ) from exc
+
+
+def ssh_detail(result: subprocess.CompletedProcess[str]) -> str:
+    detail = (result.stderr or result.stdout).strip()
+    if not detail:
+        detail = f"ssh exited with status {result.returncode}."
+    return "\n".join(f"  {line}" for line in detail.splitlines())
+
+
+def raise_ssh_connection_error(result: subprocess.CompletedProcess[str]) -> None:
+    raise SystemExit(
+        f"\nError: could not connect to {REMOTE_USER_HOST}.\n\n"
+        f"SSH reported:\n{ssh_detail(result)}\n\n"
+        f"Check REMOTE_USER_HOST and confirm that `ssh {REMOTE_USER_HOST}` works "
+        "from this terminal.\n"
     )
 
-    if result.returncode != 0:
-        available = available_remote_corpora()
 
+def validate_corpus_exists(corpus: str) -> None:
+    """Verify that the remote config directory is accessible and contains corpus."""
+    available = available_remote_corpora()
+
+    if not available:
         raise SystemExit(
-            f"\nError: corpus '{corpus}' does not exist.\n"
-            f"Available corpora:\n"
-            + "\n".join(f"  - {c}" for c in available)
+            "\nError: connected successfully to Oka, but no corpus configuration "
+            "files were found in:\n"
+            f"  {REMOTE_CONFIG_DIR}\n"
+        )
+
+    if corpus not in available:
+        raise SystemExit(
+            f"\nError: corpus '{corpus}' was not found on Oka.\n"
+            f"Remote configuration directory:\n  {REMOTE_CONFIG_DIR}\n\n"
+            "Available corpora:\n"
+            + "\n".join(f"  - {name}" for name in available)
             + "\n"
         )
 
+
 def remote_file_exists(remote_path: str) -> bool:
-    """Return True if a file exists on the remote server."""
-    result = subprocess.run(
-        ["ssh", REMOTE_USER_HOST, "test", "-f", remote_path],
-        capture_output=True,
+    """Return False only when the remote server confirms that a file is absent."""
+    result = run_ssh("ls", "-ld", remote_path)
+
+    if result.returncode == 0:
+        return True
+    if result.returncode == 255:
+        raise_ssh_connection_error(result)
+
+    detail = (result.stderr or result.stdout).lower()
+    if "no such file or directory" in detail:
+        return False
+    if "permission denied" in detail:
+        raise SystemExit(
+            "\nError: connected to Oka, but could not access the remote path:\n"
+            f"  {remote_path}\n\n"
+            f"Remote error:\n{ssh_detail(result)}\n"
+        )
+
+    raise SystemExit(
+        "\nError: could not check the remote path:\n"
+        f"  {remote_path}\n\n"
+        f"SSH reported:\n{ssh_detail(result)}\n"
     )
-    return result.returncode == 0
+
 
 def available_remote_corpora() -> list[str]:
-    result = subprocess.run(
-        ["ssh", REMOTE_USER_HOST, f"ls {REMOTE_CONFIG_DIR}/*.yaml 2>/dev/null"],
-        capture_output=True,
-        text=True,
-    )
+    result = run_ssh("ls", "-1", REMOTE_CONFIG_DIR)
+
+    if result.returncode == 255:
+        raise_ssh_connection_error(result)
 
     if result.returncode != 0:
-        return []
+        detail = (result.stderr or result.stdout).lower()
+        if "permission denied" in detail:
+            raise SystemExit(
+                f"\nError: connected to {REMOTE_USER_HOST}, but could not read the "
+                "remote corpus configuration directory:\n"
+                f"  {REMOTE_CONFIG_DIR}\n\n"
+                f"Remote error:\n{ssh_detail(result)}\n\n"
+                "Your Oka account may not have access to /projects/xling-measures.\n"
+            )
+        if "no such file or directory" in detail:
+            raise SystemExit(
+                f"\nError: connected to {REMOTE_USER_HOST}, but the remote corpus "
+                "configuration directory does not exist:\n"
+                f"  {REMOTE_CONFIG_DIR}\n\n"
+                "Check REMOTE_PROJECT_ROOT in .env.\n"
+            )
 
-    corpora = []
+        raise SystemExit(
+            "\nError: could not read the remote corpus configuration directory:\n"
+            f"  {REMOTE_CONFIG_DIR}\n\n"
+            f"SSH reported:\n{ssh_detail(result)}\n"
+        )
 
-    for line in result.stdout.splitlines():
-        corpora.append(Path(line).stem)
-
-    return sorted(corpora)
+    return sorted(
+        Path(line).stem
+        for line in result.stdout.splitlines()
+        if line.endswith(".yaml")
+    )
 
 def main() -> None:
     if ANNOTATOR_ID == "unknown":
