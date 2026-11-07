@@ -1,7 +1,7 @@
 [project]
 name = "formant-annotation-tool"
 version = "0.1.0"
-description = "Add your description here"
+description = "Web app and workflow for hand-verifying formant tracks from FastTrack candidates."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
