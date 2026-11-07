@@ -1,166 +1,84 @@
 # Formant Annotation Tool
 
-A local application for annotating formant tracks from FastTrack candidate spectrograms.
+**A web app and data workflow for building a hand-verified formant dataset.**
+Annotators compare 20 automatic formant analyses of each vowel and pick the best one, one formant at a time. Their work is then reconciled across annotators, adjudicated, and exported as gold data for linguistic analysis.
 
-## First-Time Setup
+Built for the [Montréal Computational & Quantitative Linguistics Lab](https://mcqll.org/) (MCQLL), where it replaced a manual workflow. Two researchers have used it to label **5,000+ speech tokens**.
 
-> [!IMPORTANT]
-> This project requires a **POSIX-compliant environment**. It natively supports macOS and Linux. Windows users must use **WSL**, which can be installed with `wsl --install`.
+<p align="center">
+  <img src="docs/media/annotate-demo.gif" alt="Annotating vowel tokens: hovering over candidate spectrograms, selecting a candidate, overriding F2, and saving with keyboard shortcuts" width="100%">
+</p>
 
-### 1. Install the project
+<p align="center">
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white">
+  <img alt="SQLAlchemy" src="https://img.shields.io/badge/SQLAlchemy%20%2B%20SQLite-D71F00?logo=sqlalchemy&logoColor=white">
+  <img alt="JavaScript" src="https://img.shields.io/badge/Vanilla%20JS-F7DF1E?logo=javascript&logoColor=black">
+  <img alt="uv" src="https://img.shields.io/badge/uv-DE5FE9?logo=uv&logoColor=white">
+  <img alt="Platforms" src="https://img.shields.io/badge/macOS%20%7C%20Linux%20%7C%20WSL-555">
+</p>
 
-Clone the repository and install its dependencies:
+## Why it exists
+
+Automatic formant trackers make errors, and the lab needed a gold-standard dataset to measure those errors. For each vowel token, [FastTrack](https://github.com/santiagobarreda/FastTrack) produces 20 candidate analyses with different settings. A person has to decide which candidate tracks each formant (F1–F4) correctly. Before this tool, that would require opening images and Praat by hand and keeping track of decisions in a spreadsheet, with no clean way to merge two annotators' work.
+
+## How it works
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/media/workflow-dark.svg">
+  <img alt="Workflow: corpus batches are annotated in the app, uploaded as snapshots, merged and reconciled, adjudicated, and exported as gold data for formant-benchmark" src="docs/media/workflow-light.svg" width="100%">
+</picture>
+
+- **Annotation app.** A FastAPI and SQLAlchemy backend with a vanilla JavaScript frontend split into small ES modules. It runs locally for each annotator, with its own SQLite database.
+- **Candidate selection.** Clicking a candidate sets all four formants, a number overrides a single formant, and Shift-click selects and saves in one step. Space accepts the automatic winner, and the next token loads automatically.
+- **Quality control.** Tokens can be flagged as bad or as needing correction, and any token can have a note.
+- **Praat integration.** Any token opens directly in Praat.
+- **Reconciliation and adjudication.** Snapshots from all annotators are merged and scanned for formant-level disagreements. Conflicts go to a separate adjudication UI that shows them side by side and proposes resolutions automatically.
+- **Gold export.** A self-contained export of token metadata and formant tracks, read directly by [formant-benchmark](https://github.com/iangif/formant-benchmark) to evaluate formant trackers.
+
+## Try the demo
+
+The repo ships with a 20-token demo corpus, so you can try the full annotation interface without lab data or server access.
 
 ```bash
 git clone https://github.com/iangif/formant-annotation-tool
 cd formant-annotation-tool
-uv sync
+./scripts/demo.sh          # needs uv: https://docs.astral.sh/uv/
 ```
 
-### 2. Configure your annotator ID
+Then open <http://127.0.0.1:8000>. Click **Hotkeys** to see the shortcuts.
 
-Copy the example environment file:
+The demo doesn't include reconciliation, adjudication or gold export. Those depend on the lab server and a lab-only export package.
 
-```bash
-cp .env.example .env
-```
+<details>
+<summary><b>Keyboard shortcuts</b></summary>
 
-Then edit `.env`:
+| Key | Action |
+|---|---|
+| <kbd>←</kbd> / <kbd>→</kbd> | Previous / next token without saving |
+| <kbd>Space</kbd> | Accept the automatic winner |
+| Click panel | Set F1–F4 to that candidate |
+| <kbd>Shift</kbd> + click | Set F1–F4 and save immediately |
+| <kbd>1</kbd>–<kbd>4</kbd> | Focus the F1–F4 field to override one formant |
+| <kbd>Enter</kbd> | Save the current fields |
+| <kbd>B</kbd> | Mark the token as bad |
+| <kbd>X</kbd> | Toggle *needs correction* for the focused formant |
+| <kbd>N</kbd> | Focus the note box |
 
-```env
-ANNOTATOR_ID=name
-REMOTE_USER_HOST=username@oka
+</details>
 
-# Optional, for opening Praat
-PRAAT_PATH=/Applications/Praat.app/Contents/MacOS/Praat
-```
-
-Replace `name` with your annotator ID and `username` with your oka username.
-
----
-
-## Loading or Updating a Corpus
-
-When you begin working on a corpus, run:
-
-```bash
-./scripts/load.sh ls_eng
-```
-
-Replace `ls_eng` with the corpus you want to load.
-
-This command:
-
-1. Downloads the audio, TextGrid, image, and metadata files for the batches assigned to you.
-2. Adds new corpus, batch, and token information to your local SQLite database.
-
-It is safe to run this command multiple times. Your existing annotations will remain unchanged.
-
-Run it again whenever:
-
-- new batches are assigned to you;
-- existing batch files or metadata are updated; or
-- you want to make sure your local copy is current.
-
-
-> [!NOTE]
-> Each batch can range from approximately **400 MB to 1 GB**. Allow at least **5 GB of free space per corpus** before loading it.
-
----
-
-## Starting the App
-
-> [!TIP]
-> Before starting a new annotation session, it is a good idea to update the tool:
->
-> ```bash
-> git pull
-> uv sync
-> ```
-
-Launch the annotation app:
-
-```bash
-./scripts/start_app.sh
-```
-
-Then open the following address in your browser:
+## Project layout
 
 ```text
-http://127.0.0.1:8000
+app/
+  main.py             FastAPI entry point (annotate + adjudicate pages)
+  routes/             REST API: batches, tokens, annotations, notes, Praat, adjudication
+  services/           Praat bridge, adjudication proposals
+  models.py, crud.py  SQLAlchemy models and queries
+  static/js/annotate/ Frontend ES modules (see its README)
+scripts/              load / upload / sync, migrations, local gold export, demo
+data/corpora/demo/    Bundled demo corpus
 ```
 
-Keep the terminal running while you use the app. To stop the app, return to the terminal and press `Ctrl+C`.
+## For lab annotators
 
----
-
-## Uploading Snapshots
-
-When you are ready to upload your current annotations for a corpus and batch, run:
-
-```bash
-./scripts/upload.sh <corpus> <batch>
-```
-
-For example:
-
-```bash
-./scripts/upload.sh ls_eng batch1
-```
-
-This command:
-
-1. Creates a snapshot containing the latest annotations and notes for the selected corpus and batch.
-2. Uploads the snapshot to your annotator-specific directory on oka.
-3. Deletes the temporary local upload snapshot after the transfer succeeds.
-
-You can run the command again later to replace the remote snapshot with your latest annotation state. Your main local annotation database is not deleted or modified by the upload.
-
-> [!IMPORTANT]
-> Make sure `ANNOTATOR_ID` and `REMOTE_USER_HOST` are configured correctly in `.env` before uploading.
-
----
-
-## Troubleshooting
-
-### No batches appear
-
-Run:
-
-```bash
-./scripts/load.sh <corpus>
-```
-
-Then verify that:
-
-- your `ANNOTATOR_ID` is correct; and
-- the corpus contains batches assigned to you.
-
-### Upload fails
-
-Verify that:
-
-- `REMOTE_USER_HOST` uses the format `username@oka`;
-- you can connect to oka through SSH; and
-- the corpus and batch names are correct.
-
-You can rerun the upload command after correcting the problem. The temporary snapshot is removed only after a successful upload.
-
-### Open Praat failure
-
-If you are a Windows user running the app through WSL, you may need to reinstall Praat:
-
-```bash
-sudo apt update
-sudo apt install praat
-```
-
-If errors continue, manually add the path to the Praat executable in `.env`.
-
-The Praat executable must be installed on the same operating system that is running this project.
-
----
-
-## Adjudication
-
-Instructions for opening the adjudication interface are available in [ADJUDICATE.md](ADJUDICATE.md).
+To set up with the lab server, load your batches, and upload snapshots, see the [annotator guide](docs/annotator-guide.md) and [ADJUDICATE.md](ADJUDICATE.md).
